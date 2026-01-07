@@ -890,7 +890,7 @@ const DATA = {
       moods: ['sad', 'nostalgic'],
       tempo: 'slow',
       bpm: 58,
-      youtubeId: '0FWuZtNqXPw',
+      youtubeId: 'h-SrHj0Y_Es',
       album: 'Ghazal Collection'
     },
     {
@@ -901,7 +901,7 @@ const DATA = {
       moods: ['romantic', 'peaceful'],
       tempo: 'slow',
       bpm: 62,
-      youtubeId: 'cOFF8GjHlGA',
+      youtubeId: 'x5soX9DRnSA',
       album: 'Live Concert'
     },
     {
@@ -912,7 +912,7 @@ const DATA = {
       moods: ['sad', 'nostalgic'],
       tempo: 'slow',
       bpm: 60,
-      youtubeId: '5BDq4bP7Xn0',
+      youtubeId: 'GrMCMNQzXYc',
       album: 'Ghazal Collection'
     },
     {
@@ -923,7 +923,7 @@ const DATA = {
       moods: ['sad', 'peaceful'],
       tempo: 'slow',
       bpm: 55,
-      youtubeId: 'TNwHiI7ZkPg',
+      youtubeId: 'dxVvDd2ZTTA',
       album: 'Classics'
     },
     {
@@ -934,7 +934,7 @@ const DATA = {
       moods: ['sad', 'nostalgic'],
       tempo: 'slow',
       bpm: 58,
-      youtubeId: '9AvWhArLg2Y',
+      youtubeId: 'n-9Tda6EGGU',
       album: 'Live Concert'
     },
 
