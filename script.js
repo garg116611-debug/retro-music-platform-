@@ -5,7 +5,13 @@ const state = {
   view: 'home',
   selectedMood: null,
   intensity: 60,
-  favorites: JSON.parse(localStorage.getItem('ss_favs') || '[]')
+  favorites: JSON.parse(localStorage.getItem('ss_favs') || '[]'),
+  // Playback state
+  currentQueue: [],
+  currentIndex: -1,
+  shuffleMode: false,
+  repeatMode: 'off', // 'off', 'one', 'all'
+  recentlyPlayed: JSON.parse(localStorage.getItem('ss_recent') || '[]')
 };
 
 // ---------- Helpers ----------
@@ -327,9 +333,94 @@ function applyFilterValues(values) {
 }
 
 // ---------- openSong (modal with YouTube or audio) ----------
+let ytPlayer = null;
+
+// Add song to recently played
+function addToRecentlyPlayed(songId) {
+  state.recentlyPlayed = state.recentlyPlayed.filter(id => id !== songId);
+  state.recentlyPlayed.unshift(songId);
+  if (state.recentlyPlayed.length > 20) state.recentlyPlayed.pop();
+  localStorage.setItem('ss_recent', JSON.stringify(state.recentlyPlayed));
+}
+
+// Get next song index based on shuffle/repeat
+function getNextIndex() {
+  if (state.repeatMode === 'one') return state.currentIndex;
+
+  if (state.shuffleMode) {
+    let newIndex;
+    do {
+      newIndex = Math.floor(Math.random() * state.currentQueue.length);
+    } while (newIndex === state.currentIndex && state.currentQueue.length > 1);
+    return newIndex;
+  }
+
+  const nextIndex = state.currentIndex + 1;
+  if (nextIndex >= state.currentQueue.length) {
+    return state.repeatMode === 'all' ? 0 : -1;
+  }
+  return nextIndex;
+}
+
+// Get previous song index
+function getPrevIndex() {
+  if (state.shuffleMode) {
+    let newIndex;
+    do {
+      newIndex = Math.floor(Math.random() * state.currentQueue.length);
+    } while (newIndex === state.currentIndex && state.currentQueue.length > 1);
+    return newIndex;
+  }
+
+  const prevIndex = state.currentIndex - 1;
+  if (prevIndex < 0) {
+    return state.repeatMode === 'all' ? state.currentQueue.length - 1 : -1;
+  }
+  return prevIndex;
+}
+
+// Play next song
+function playNextSong() {
+  const nextIndex = getNextIndex();
+  if (nextIndex >= 0 && nextIndex < state.currentQueue.length) {
+    state.currentIndex = nextIndex;
+    openSong(state.currentQueue[nextIndex]);
+  }
+}
+
+// Play previous song
+function playPrevSong() {
+  const prevIndex = getPrevIndex();
+  if (prevIndex >= 0 && prevIndex < state.currentQueue.length) {
+    state.currentIndex = prevIndex;
+    openSong(state.currentQueue[prevIndex]);
+  }
+}
+
+// Initialize queue from current view
+function initQueueFromSongs(songIds, startIndex = 0) {
+  state.currentQueue = [...songIds];
+  state.currentIndex = startIndex;
+}
+
 function openSong(id) {
   const s = DATA.songs.find(x => x.id === id);
   if (!s) return;
+
+  // Add to recently played
+  addToRecentlyPlayed(id);
+
+  // If queue is empty, initialize with all songs
+  if (state.currentQueue.length === 0) {
+    state.currentQueue = DATA.songs.map(s => s.id);
+    state.currentIndex = state.currentQueue.indexOf(id);
+  } else if (!state.currentQueue.includes(id)) {
+    // If song not in queue, add it
+    state.currentQueue.push(id);
+    state.currentIndex = state.currentQueue.length - 1;
+  } else {
+    state.currentIndex = state.currentQueue.indexOf(id);
+  }
 
   cleanupAudioGraph();
 
@@ -341,18 +432,29 @@ function openSong(id) {
 
   // Check if song has YouTube ID
   if (s.youtubeId) {
-    // Create YouTube embed
+    // Create container for YouTube player
     const youtubeContainer = document.createElement('div');
+    youtubeContainer.id = 'ytPlayerContainer';
     youtubeContainer.style.cssText = 'position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:12px;margin-top:16px';
-    youtubeContainer.innerHTML = `
-      <iframe 
-        src="https://www.youtube.com/embed/${s.youtubeId}?autoplay=1&rel=0" 
-        style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:12px"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-        allowfullscreen>
-      </iframe>
-    `;
+
+    const playerFrame = document.createElement('div');
+    playerFrame.id = 'ytPlayerFrame';
+    playerFrame.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%';
+    youtubeContainer.appendChild(playerFrame);
     playerDiv.appendChild(youtubeContainer);
+
+    // Load YouTube IFrame API if not loaded
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(tag);
+
+      window.onYouTubeIframeAPIReady = () => {
+        createYTPlayer(s.youtubeId);
+      };
+    } else {
+      createYTPlayer(s.youtubeId);
+    }
 
     // Hide audio controls when using YouTube
     const audioControls = el('#audioControls');
@@ -368,6 +470,11 @@ function openSong(id) {
     audioEl.style.marginTop = '16px';
     audioEl.style.borderRadius = '8px';
     playerDiv.appendChild(audioEl);
+
+    // Auto-play next when audio ends
+    audioEl.onended = () => {
+      playNextSong();
+    };
 
     const nodes = buildAudioGraph(audioEl);
 
@@ -430,8 +537,39 @@ function openSong(id) {
   el('#closeModal').onclick = () => {
     el('#modal').style.display = 'none';
     el('#modalPlayer').innerHTML = '';
+    if (ytPlayer) {
+      ytPlayer.destroy();
+      ytPlayer = null;
+    }
     cleanupAudioGraph();
   };
+}
+
+// Create YouTube player with IFrame API
+function createYTPlayer(videoId) {
+  if (ytPlayer) {
+    ytPlayer.destroy();
+  }
+
+  ytPlayer = new YT.Player('ytPlayerFrame', {
+    videoId: videoId,
+    playerVars: {
+      autoplay: 1,
+      rel: 0,
+      modestbranding: 1
+    },
+    events: {
+      onStateChange: onYTStateChange
+    }
+  });
+}
+
+// Handle YouTube player state changes
+function onYTStateChange(event) {
+  // YT.PlayerState.ENDED = 0
+  if (event.data === 0) {
+    playNextSong();
+  }
 }
 
 // ---------- favorites ----------
