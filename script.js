@@ -88,6 +88,7 @@ function renderSongs(list) {
     d.style.animationDelay = `${index * 0.05}s`;
 
     const thumbHtml = getThumbHtml(song);
+    const isInQueue = state.currentQueue.includes(song.id);
     d.innerHTML = `
       ${thumbHtml}
       <div style="flex:1;min-width:0">
@@ -96,7 +97,10 @@ function renderSongs(list) {
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
         <div class="badge">${song.moods[0]}</div>
-        <div class="fav" data-id="${song.id}">${state.favorites.includes(song.id) ? '❤️' : '🤍'}</div>
+        <div style="display:flex;gap:6px">
+          <div class="queue-btn" data-id="${song.id}" title="Add to Queue" style="cursor:pointer">${isInQueue ? '✅' : '➕'}</div>
+          <div class="fav" data-id="${song.id}">${state.favorites.includes(song.id) ? '❤️' : '🤍'}</div>
+        </div>
       </div>
     `;
 
@@ -105,6 +109,10 @@ function renderSongs(list) {
     d.onclick = (e) => {
       if (e.target.classList && e.target.classList.contains('fav')) {
         toggleFav(song.id);
+        e.stopPropagation();
+      } else if (e.target.classList && e.target.classList.contains('queue-btn')) {
+        addToQueue(song.id);
+        e.target.innerHTML = '✅';
         e.stopPropagation();
       } else {
         openSong(song.id);
@@ -627,6 +635,92 @@ function initPlaybackControls() {
   if (btnRepeat) btnRepeat.onclick = toggleRepeat;
 }
 
+// ---------- Queue Management ----------
+function addToQueue(songId) {
+  if (!state.currentQueue.includes(songId)) {
+    state.currentQueue.push(songId);
+    renderQueue();
+  }
+}
+
+function removeFromQueue(songId) {
+  const index = state.currentQueue.indexOf(songId);
+  if (index > -1) {
+    state.currentQueue.splice(index, 1);
+    // Adjust currentIndex if needed
+    if (index < state.currentIndex) {
+      state.currentIndex--;
+    } else if (index === state.currentIndex) {
+      state.currentIndex = Math.min(state.currentIndex, state.currentQueue.length - 1);
+    }
+    renderQueue();
+  }
+}
+
+function clearQueue() {
+  state.currentQueue = [];
+  state.currentIndex = -1;
+  renderQueue();
+}
+
+function renderQueue() {
+  const queueList = el('#queueList');
+  if (!queueList) return;
+
+  if (state.currentQueue.length === 0) {
+    queueList.innerHTML = '<span class="muted small">Queue is empty</span>';
+    return;
+  }
+
+  queueList.innerHTML = '';
+  state.currentQueue.forEach((songId, index) => {
+    const song = DATA.songs.find(s => s.id === songId);
+    if (!song) return;
+
+    const isPlaying = index === state.currentIndex;
+    const item = document.createElement('div');
+    item.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      margin-bottom: 4px;
+      background: ${isPlaying ? 'var(--accent-gold)' : 'rgba(255,255,255,0.05)'};
+      color: ${isPlaying ? 'var(--bg-dark)' : 'inherit'};
+      cursor: pointer;
+    `;
+
+    item.innerHTML = `
+      <span style="font-size:12px;width:20px;text-align:center">${index + 1}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${song.title}</div>
+      </div>
+      <span class="remove-queue" data-id="${songId}" style="cursor:pointer;opacity:0.6" title="Remove">✕</span>
+    `;
+
+    item.onclick = (e) => {
+      if (e.target.classList.contains('remove-queue')) {
+        removeFromQueue(songId);
+        e.stopPropagation();
+      } else {
+        state.currentIndex = index;
+        openSong(songId);
+      }
+    };
+
+    queueList.appendChild(item);
+  });
+}
+
+// Initialize queue controls
+function initQueueControls() {
+  const clearQueueBtn = el('#clearQueue');
+  if (clearQueueBtn) {
+    clearQueueBtn.onclick = clearQueue;
+  }
+}
+
 // ---------- favorites ----------
 function toggleFav(songId) {
   if (state.favorites.includes(songId)) {
@@ -821,6 +915,8 @@ window.addEventListener('DOMContentLoaded', () => {
   initMoodChips();
   renderFavCount();
   updateStats();
+  initQueueControls();
+  renderQueue();
 
   // Intensity slider
   const intensitySlider = el('#intensity');
