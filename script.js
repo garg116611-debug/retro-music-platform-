@@ -534,6 +534,10 @@ function openSong(id) {
 
   el('#modal').style.display = 'grid';
 
+  // Initialize playback controls and update UI
+  initPlaybackControls();
+  updatePlaybackControlsUI();
+
   el('#closeModal').onclick = () => {
     el('#modal').style.display = 'none';
     el('#modalPlayer').innerHTML = '';
@@ -570,6 +574,57 @@ function onYTStateChange(event) {
   if (event.data === 0) {
     playNextSong();
   }
+}
+
+// ---------- Shuffle/Repeat Toggle Functions ----------
+function toggleShuffle() {
+  state.shuffleMode = !state.shuffleMode;
+  updatePlaybackControlsUI();
+}
+
+function toggleRepeat() {
+  const modes = ['off', 'one', 'all'];
+  const currentIdx = modes.indexOf(state.repeatMode);
+  state.repeatMode = modes[(currentIdx + 1) % modes.length];
+  updatePlaybackControlsUI();
+}
+
+function updatePlaybackControlsUI() {
+  const shuffleBtn = el('#btnShuffle');
+  const repeatBtn = el('#btnRepeat');
+  const queuePos = el('#queuePosition');
+  const queueTotal = el('#queueTotal');
+
+  if (shuffleBtn) {
+    shuffleBtn.innerHTML = state.shuffleMode ? '🔀 On' : '🔀 Off';
+    shuffleBtn.style.background = state.shuffleMode ? 'var(--accent-gold)' : '';
+    shuffleBtn.style.color = state.shuffleMode ? 'var(--bg-dark)' : '';
+  }
+
+  if (repeatBtn) {
+    const repeatLabels = { off: '🔁 Off', one: '🔂 One', all: '🔁 All' };
+    repeatBtn.innerHTML = repeatLabels[state.repeatMode];
+    repeatBtn.style.background = state.repeatMode !== 'off' ? 'var(--accent-gold)' : '';
+    repeatBtn.style.color = state.repeatMode !== 'off' ? 'var(--bg-dark)' : '';
+  }
+
+  if (queuePos && queueTotal) {
+    queuePos.textContent = state.currentIndex + 1;
+    queueTotal.textContent = state.currentQueue.length;
+  }
+}
+
+// Initialize playback control buttons
+function initPlaybackControls() {
+  const btnPrev = el('#btnPrev');
+  const btnNext = el('#btnNext');
+  const btnShuffle = el('#btnShuffle');
+  const btnRepeat = el('#btnRepeat');
+
+  if (btnPrev) btnPrev.onclick = playPrevSong;
+  if (btnNext) btnNext.onclick = playNextSong;
+  if (btnShuffle) btnShuffle.onclick = toggleShuffle;
+  if (btnRepeat) btnRepeat.onclick = toggleRepeat;
 }
 
 // ---------- favorites ----------

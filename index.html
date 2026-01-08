@@ -168,6 +168,21 @@
       </div>
 
       <div style="margin-top:20px">
+        <!-- Playback Controls Bar -->
+        <div id="playbackControls"
+          style="display:flex;justify-content:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+          <button class="pill" id="btnPrev" title="Previous">⏮️ Prev</button>
+          <button class="pill" id="btnShuffle" title="Shuffle">🔀 Off</button>
+          <button class="pill" id="btnRepeat" title="Repeat">🔁 Off</button>
+          <button class="pill" id="btnNext" title="Next">Next ⏭️</button>
+        </div>
+
+        <!-- Queue Info -->
+        <div style="text-align:center;margin-bottom:12px">
+          <span class="muted small">Now playing: <span id="queuePosition">1</span> of <span
+              id="queueTotal">1</span></span>
+        </div>
+
         <!-- Audio/YouTube player will be injected here -->
         <div id="modalPlayer"></div>
 
