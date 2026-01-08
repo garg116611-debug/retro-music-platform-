@@ -349,6 +349,7 @@ function addToRecentlyPlayed(songId) {
   state.recentlyPlayed.unshift(songId);
   if (state.recentlyPlayed.length > 20) state.recentlyPlayed.pop();
   localStorage.setItem('ss_recent', JSON.stringify(state.recentlyPlayed));
+  renderRecentlyPlayed();
 }
 
 // Get next song index based on shuffle/repeat
@@ -721,6 +722,62 @@ function initQueueControls() {
   }
 }
 
+// ---------- Recently Played ----------
+function renderRecentlyPlayed() {
+  const recentList = el('#recentlyPlayedList');
+  if (!recentList) return;
+
+  if (state.recentlyPlayed.length === 0) {
+    recentList.innerHTML = '<span class="muted small">No history yet</span>';
+    return;
+  }
+
+  recentList.innerHTML = '';
+  // Show up to 10 recent songs
+  state.recentlyPlayed.slice(0, 10).forEach((songId, index) => {
+    const song = DATA.songs.find(s => s.id === songId);
+    if (!song) return;
+
+    const item = document.createElement('div');
+    item.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      margin-bottom: 4px;
+      background: rgba(255,255,255,0.05);
+      cursor: pointer;
+      transition: background 0.2s;
+    `;
+    item.onmouseenter = () => item.style.background = 'rgba(255,255,255,0.1)';
+    item.onmouseleave = () => item.style.background = 'rgba(255,255,255,0.05)';
+
+    item.innerHTML = `
+      <span style="font-size:16px">🎵</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${song.title}</div>
+      </div>
+    `;
+
+    item.onclick = () => openSong(songId);
+    recentList.appendChild(item);
+  });
+}
+
+function clearRecentlyPlayed() {
+  state.recentlyPlayed = [];
+  localStorage.setItem('ss_recent', '[]');
+  renderRecentlyPlayed();
+}
+
+function initRecentlyPlayedControls() {
+  const clearRecentBtn = el('#clearRecent');
+  if (clearRecentBtn) {
+    clearRecentBtn.onclick = clearRecentlyPlayed;
+  }
+}
+
 // ---------- favorites ----------
 function toggleFav(songId) {
   if (state.favorites.includes(songId)) {
@@ -917,6 +974,8 @@ window.addEventListener('DOMContentLoaded', () => {
   updateStats();
   initQueueControls();
   renderQueue();
+  initRecentlyPlayedControls();
+  renderRecentlyPlayed();
 
   // Intensity slider
   const intensitySlider = el('#intensity');
