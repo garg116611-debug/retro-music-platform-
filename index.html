@@ -40,6 +40,12 @@
 
       <div class="controls">
         <input id="searchInput" class="search" placeholder="🔍 Search artists, songs, or moods..." autocomplete="off" />
+        <button class="pill" id="themeToggle" title="Toggle Theme">
+          <span>🌙</span>
+        </button>
+        <button class="pill" id="viewPlaylists">
+          <span>📝</span> Playlists
+        </button>
         <button class="pill" id="viewFavorites">
           <span>❤️</span> Favorites (<span id="favCount">0</span>)
         </button>
@@ -136,6 +142,17 @@
           </div>
         </div>
 
+        <!-- Playlists -->
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <strong style="font-size:16px">📝 My Playlists</strong>
+            <button class="badge" id="newPlaylist" style="cursor:pointer">➕ New</button>
+          </div>
+          <div id="playlistsList" style="max-height:180px;overflow-y:auto">
+            <span class="muted small">No playlists yet</span>
+          </div>
+        </div>
+
         <!-- Quick Stats -->
         <div class="card">
           <strong style="font-size:16px">📊 Library Stats</strong>
@@ -208,6 +225,23 @@
         <!-- Audio/YouTube player will be injected here -->
         <div id="modalPlayer"></div>
 
+        <!-- Progress Bar with Seek -->
+        <div id="progressContainer" style="margin-top:16px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span class="muted small" id="currentTime">0:00</span>
+            <div id="progressBar" class="progress-bar">
+              <div id="progressFill" class="progress-fill"></div>
+              <div id="progressHandle" class="progress-handle"></div>
+            </div>
+            <span class="muted small" id="totalTime">0:00</span>
+          </div>
+        </div>
+
+        <!-- Audio Visualizer -->
+        <div id="visualizerContainer" style="margin-top:16px;display:flex;justify-content:center">
+          <canvas id="visualizer" width="600" height="80"></canvas>
+        </div>
+
         <!-- Effect Controls -->
         <div id="audioControls" style="margin-top:20px;display:grid;gap:12px">
           <div style="display:flex;gap:12px;align-items:center">
@@ -238,6 +272,39 @@
             <label style="width:100px" class="muted small">🎤 Vocal</label>
             <button id="vocalToggle" class="pill">Center Cancel: Off</button>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Playlist Creation Modal -->
+  <div id="playlistModal" class="modal" style="display:none">
+    <div class="player card" style="max-width:400px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="font-size:18px">📝 Create Playlist</strong>
+        <div class="close" id="closePlaylistModal">✕</div>
+      </div>
+      <div style="margin-top:20px">
+        <input type="text" id="playlistNameInput" class="search" placeholder="Enter playlist name..."
+          style="width:100%;min-width:auto">
+        <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+          <button class="pill" id="cancelPlaylist">Cancel</button>
+          <button class="chip active" id="createPlaylist">Create</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add to Playlist Modal -->
+  <div id="addToPlaylistModal" class="modal" style="display:none">
+    <div class="player card" style="max-width:400px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="font-size:18px">➕ Add to Playlist</strong>
+        <div class="close" id="closeAddToPlaylistModal">✕</div>
+      </div>
+      <div style="margin-top:20px">
+        <div id="playlistOptions" style="max-height:250px;overflow-y:auto">
+          <span class="muted small">No playlists available</span>
         </div>
       </div>
     </div>

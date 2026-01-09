@@ -11,7 +11,11 @@ const state = {
   currentIndex: -1,
   shuffleMode: false,
   repeatMode: 'off', // 'off', 'one', 'all'
-  recentlyPlayed: JSON.parse(localStorage.getItem('ss_recent') || '[]')
+  recentlyPlayed: JSON.parse(localStorage.getItem('ss_recent') || '[]'),
+  // Day 2 features
+  playlists: JSON.parse(localStorage.getItem('ss_playlists') || '[]'),
+  theme: localStorage.getItem('ss_theme') || 'dark',
+  currentSongForPlaylist: null
 };
 
 // ---------- Helpers ----------
@@ -97,7 +101,8 @@ function renderSongs(list) {
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
         <div class="badge">${song.moods[0]}</div>
-        <div style="display:flex;gap:6px">
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="add-to-playlist-btn" data-id="${song.id}" title="Add to Playlist">📝</button>
           <div class="queue-btn" data-id="${song.id}" title="Add to Queue" style="cursor:pointer">${isInQueue ? '✅' : '➕'}</div>
           <div class="fav" data-id="${song.id}">${state.favorites.includes(song.id) ? '❤️' : '🤍'}</div>
         </div>
@@ -113,6 +118,9 @@ function renderSongs(list) {
       } else if (e.target.classList && e.target.classList.contains('queue-btn')) {
         addToQueue(song.id);
         e.target.innerHTML = '✅';
+        e.stopPropagation();
+      } else if (e.target.classList && e.target.classList.contains('add-to-playlist-btn')) {
+        showAddToPlaylistModal(song.id);
         e.stopPropagation();
       } else {
         openSong(song.id);
@@ -487,6 +495,9 @@ function openSong(id) {
 
     const nodes = buildAudioGraph(audioEl);
 
+    // Day 2: Initialize visualizer for local audio
+    initVisualizer();
+
     // Show audio controls
     const audioControls = el('#audioControls');
     if (audioControls) audioControls.style.display = 'grid';
@@ -547,6 +558,9 @@ function openSong(id) {
   initPlaybackControls();
   updatePlaybackControlsUI();
 
+  // Day 2: Start progress bar updates
+  startProgressUpdates();
+
   el('#closeModal').onclick = () => {
     el('#modal').style.display = 'none';
     el('#modalPlayer').innerHTML = '';
@@ -555,6 +569,9 @@ function openSong(id) {
       ytPlayer = null;
     }
     cleanupAudioGraph();
+    // Day 2: Stop progress and visualizer
+    stopProgressUpdates();
+    stopVisualizer();
   };
 }
 
@@ -899,6 +916,429 @@ function applySearch(q) {
   }
 }
 
+// ---------- DAY 2 FEATURES ----------
+
+// ========== THEME TOGGLE ==========
+function initTheme() {
+  const savedTheme = localStorage.getItem('ss_theme') || 'dark';
+  state.theme = savedTheme;
+  if (savedTheme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+  updateThemeButton();
+}
+
+function toggleTheme() {
+  state.theme = state.theme === 'dark' ? 'light' : 'dark';
+  if (state.theme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  localStorage.setItem('ss_theme', state.theme);
+  updateThemeButton();
+}
+
+function updateThemeButton() {
+  const btn = el('#themeToggle');
+  if (btn) {
+    btn.innerHTML = state.theme === 'dark' ? '<span>🌙</span>' : '<span>☀️</span>';
+  }
+}
+
+// ========== PLAYLIST MANAGEMENT ==========
+function savePlaylists() {
+  localStorage.setItem('ss_playlists', JSON.stringify(state.playlists));
+}
+
+function createPlaylist(name) {
+  if (!name || name.trim() === '') return;
+
+  const playlist = {
+    id: 'pl_' + Date.now(),
+    name: name.trim(),
+    songs: [],
+    createdAt: Date.now()
+  };
+
+  state.playlists.push(playlist);
+  savePlaylists();
+  renderPlaylists();
+  closePlaylistModal();
+}
+
+function deletePlaylist(playlistId) {
+  state.playlists = state.playlists.filter(p => p.id !== playlistId);
+  savePlaylists();
+  renderPlaylists();
+}
+
+function addSongToPlaylist(playlistId, songId) {
+  const playlist = state.playlists.find(p => p.id === playlistId);
+  if (playlist && !playlist.songs.includes(songId)) {
+    playlist.songs.push(songId);
+    savePlaylists();
+    closeAddToPlaylistModal();
+    renderPlaylists();
+  }
+}
+
+function removeSongFromPlaylist(playlistId, songId) {
+  const playlist = state.playlists.find(p => p.id === playlistId);
+  if (playlist) {
+    playlist.songs = playlist.songs.filter(id => id !== songId);
+    savePlaylists();
+  }
+}
+
+function openPlaylist(playlistId) {
+  const playlist = state.playlists.find(p => p.id === playlistId);
+  if (!playlist) return;
+
+  state.view = 'playlist:' + playlistId;
+  const main = document.querySelector('main > section');
+  if (!main) return;
+
+  main.innerHTML = '';
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div>
+        <h2>📝 ${playlist.name}</h2>
+        <p class="muted small">${playlist.songs.length} songs</p>
+      </div>
+      <button class="chip" onclick="loadHome()">← Back to Home</button>
+    </div>
+    <div id="playlistSongsList"></div>
+  `;
+  main.appendChild(card);
+
+  const listEl = el('#playlistSongsList', card);
+  if (playlist.songs.length === 0) {
+    listEl.innerHTML = `
+      <div style="text-align:center;padding:40px;color:var(--text-muted)">
+        <div style="font-size:48px;margin-bottom:16px">📭</div>
+        <div>This playlist is empty</div>
+        <div class="small" style="margin-top:8px">Add songs using the ➕ button on song cards</div>
+      </div>
+    `;
+  } else {
+    renderSongsInContainer(playlist.songs.map(id => ({ id })), listEl);
+  }
+}
+
+function renderPlaylists() {
+  const container = el('#playlistsList');
+  if (!container) return;
+
+  if (state.playlists.length === 0) {
+    container.innerHTML = '<span class="muted small">No playlists yet</span>';
+    return;
+  }
+
+  container.innerHTML = '';
+  state.playlists.forEach(playlist => {
+    const item = document.createElement('div');
+    item.className = 'playlist-item';
+    item.innerHTML = `
+      <span class="playlist-name">📝 ${playlist.name}</span>
+      <span class="playlist-count">${playlist.songs.length} songs</span>
+      <span class="delete-playlist" data-id="${playlist.id}">🗑️</span>
+    `;
+
+    item.onclick = (e) => {
+      if (e.target.classList.contains('delete-playlist')) {
+        deletePlaylist(playlist.id);
+        e.stopPropagation();
+      } else {
+        openPlaylist(playlist.id);
+      }
+    };
+
+    container.appendChild(item);
+  });
+}
+
+function showAddToPlaylistModal(songId) {
+  state.currentSongForPlaylist = songId;
+  const modal = el('#addToPlaylistModal');
+  const optionsContainer = el('#playlistOptions');
+
+  if (state.playlists.length === 0) {
+    optionsContainer.innerHTML = `
+      <div style="text-align:center;padding:20px;color:var(--text-muted)">
+        <div>No playlists yet</div>
+        <button class="chip" style="margin-top:12px" onclick="closeAddToPlaylistModal();showPlaylistModal();">Create Playlist</button>
+      </div>
+    `;
+  } else {
+    optionsContainer.innerHTML = '';
+    state.playlists.forEach(playlist => {
+      const alreadyIn = playlist.songs.includes(songId);
+      const option = document.createElement('div');
+      option.className = 'playlist-option';
+      option.innerHTML = `
+        <span>📝</span>
+        <span style="flex:1">${playlist.name}</span>
+        <span class="muted small">${alreadyIn ? '✅ Added' : ''}</span>
+      `;
+
+      if (!alreadyIn) {
+        option.onclick = () => addSongToPlaylist(playlist.id, songId);
+      } else {
+        option.style.opacity = '0.6';
+        option.style.cursor = 'default';
+      }
+
+      optionsContainer.appendChild(option);
+    });
+  }
+
+  modal.style.display = 'grid';
+}
+
+function closeAddToPlaylistModal() {
+  el('#addToPlaylistModal').style.display = 'none';
+  state.currentSongForPlaylist = null;
+}
+
+function showPlaylistModal() {
+  el('#playlistModal').style.display = 'grid';
+  el('#playlistNameInput').value = '';
+  el('#playlistNameInput').focus();
+}
+
+function closePlaylistModal() {
+  el('#playlistModal').style.display = 'none';
+  el('#playlistNameInput').value = '';
+}
+
+function initPlaylistControls() {
+  const newBtn = el('#newPlaylist');
+  if (newBtn) newBtn.onclick = showPlaylistModal;
+
+  const viewBtn = el('#viewPlaylists');
+  if (viewBtn) viewBtn.onclick = showPlaylistModal;
+
+  const createBtn = el('#createPlaylist');
+  if (createBtn) {
+    createBtn.onclick = () => {
+      const name = el('#playlistNameInput').value;
+      createPlaylist(name);
+    };
+  }
+
+  const cancelBtn = el('#cancelPlaylist');
+  if (cancelBtn) cancelBtn.onclick = closePlaylistModal;
+
+  const closeBtn = el('#closePlaylistModal');
+  if (closeBtn) closeBtn.onclick = closePlaylistModal;
+
+  const closeAddBtn = el('#closeAddToPlaylistModal');
+  if (closeAddBtn) closeAddBtn.onclick = closeAddToPlaylistModal;
+
+  // Enter key to create playlist
+  const nameInput = el('#playlistNameInput');
+  if (nameInput) {
+    nameInput.onkeydown = (e) => {
+      if (e.key === 'Enter') {
+        createPlaylist(nameInput.value);
+      }
+    };
+  }
+}
+
+// ========== AUDIO VISUALIZER ==========
+let visualizerAnimationId = null;
+let analyserNode = null;
+
+function initVisualizer() {
+  if (!currentNodes || !currentNodes.ctx) return;
+
+  const ctx = currentNodes.ctx;
+  analyserNode = ctx.createAnalyser();
+  analyserNode.fftSize = 128;
+
+  // Connect to audio graph
+  if (currentNodes.outGain) {
+    currentNodes.outGain.disconnect();
+    currentNodes.outGain.connect(analyserNode);
+    analyserNode.connect(ctx.destination);
+  }
+
+  drawVisualizer();
+}
+
+function drawVisualizer() {
+  const canvas = el('#visualizer');
+  if (!canvas || !analyserNode) return;
+
+  const canvasCtx = canvas.getContext('2d');
+  const bufferLength = analyserNode.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
+
+  function draw() {
+    visualizerAnimationId = requestAnimationFrame(draw);
+
+    analyserNode.getByteFrequencyData(dataArray);
+
+    // Clear canvas
+    canvasCtx.fillStyle = 'rgba(10, 31, 31, 0.2)';
+    canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const barWidth = (canvas.width / bufferLength) * 2;
+    let x = 0;
+
+    for (let i = 0; i < bufferLength; i++) {
+      const barHeight = (dataArray[i] / 255) * canvas.height * 0.9;
+
+      // Gradient colors (gold to burgundy)
+      const gradient = canvasCtx.createLinearGradient(0, canvas.height, 0, canvas.height - barHeight);
+      gradient.addColorStop(0, '#D4A84B');
+      gradient.addColorStop(0.5, '#E8C97A');
+      gradient.addColorStop(1, '#8B2942');
+
+      canvasCtx.fillStyle = gradient;
+
+      // Draw bar with rounded top
+      canvasCtx.beginPath();
+      canvasCtx.roundRect(x, canvas.height - barHeight, barWidth - 2, barHeight, 2);
+      canvasCtx.fill();
+
+      x += barWidth;
+    }
+  }
+
+  draw();
+}
+
+function stopVisualizer() {
+  if (visualizerAnimationId) {
+    cancelAnimationFrame(visualizerAnimationId);
+    visualizerAnimationId = null;
+  }
+  analyserNode = null;
+
+  // Clear canvas
+  const canvas = el('#visualizer');
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
+// ========== PROGRESS BAR WITH SEEK ==========
+let progressAnimationId = null;
+
+function formatTime(seconds) {
+  if (isNaN(seconds) || !isFinite(seconds)) return '0:00';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function updateProgressBar() {
+  const progressFill = el('#progressFill');
+  const currentTimeEl = el('#currentTime');
+  const totalTimeEl = el('#totalTime');
+
+  if (!progressFill) return;
+
+  let currentTime = 0;
+  let duration = 0;
+
+  // Check for YouTube player
+  if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function') {
+    try {
+      currentTime = ytPlayer.getCurrentTime() || 0;
+      duration = ytPlayer.getDuration() || 0;
+    } catch (e) { }
+  }
+
+  // Check for audio element
+  const audioEl = el('#modalPlayer audio');
+  if (audioEl) {
+    currentTime = audioEl.currentTime || 0;
+    duration = audioEl.duration || 0;
+  }
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  progressFill.style.width = progress + '%';
+
+  if (currentTimeEl) currentTimeEl.textContent = formatTime(currentTime);
+  if (totalTimeEl) totalTimeEl.textContent = formatTime(duration);
+}
+
+function startProgressUpdates() {
+  stopProgressUpdates();
+  progressAnimationId = setInterval(updateProgressBar, 500);
+}
+
+function stopProgressUpdates() {
+  if (progressAnimationId) {
+    clearInterval(progressAnimationId);
+    progressAnimationId = null;
+  }
+}
+
+function seekTo(percentage) {
+  let duration = 0;
+
+  // Check for YouTube player
+  if (ytPlayer && typeof ytPlayer.getDuration === 'function') {
+    try {
+      duration = ytPlayer.getDuration() || 0;
+      if (duration > 0) {
+        ytPlayer.seekTo(duration * percentage, true);
+      }
+    } catch (e) { }
+    return;
+  }
+
+  // Check for audio element
+  const audioEl = el('#modalPlayer audio');
+  if (audioEl && audioEl.duration) {
+    audioEl.currentTime = audioEl.duration * percentage;
+  }
+}
+
+function initProgressBar() {
+  const progressBar = el('#progressBar');
+  if (!progressBar) return;
+
+  let isDragging = false;
+
+  progressBar.onclick = (e) => {
+    const rect = progressBar.getBoundingClientRect();
+    const percentage = (e.clientX - rect.left) / rect.width;
+    seekTo(Math.max(0, Math.min(1, percentage)));
+    updateProgressBar();
+  };
+
+  progressBar.onmousedown = (e) => {
+    isDragging = true;
+    e.preventDefault();
+  };
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const rect = progressBar.getBoundingClientRect();
+    const percentage = (e.clientX - rect.left) / rect.width;
+    seekTo(Math.max(0, Math.min(1, percentage)));
+  });
+
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+  });
+}
+
+// ========== ENHANCED SONG CARDS WITH ADD TO PLAYLIST ==========
+// Override renderSongs to include Add to Playlist button
+const originalRenderSongs = renderSongs;
+
 // ---------- initial load & events ----------
 function loadHome() {
   state.view = 'home';
@@ -967,6 +1407,9 @@ function loadHome() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+  // Initialize theme first
+  initTheme();
+
   renderArtists();
   renderSongs(DATA.songs.slice(0, 15).map(s => ({ id: s.id })));
   initMoodChips();
@@ -976,6 +1419,17 @@ window.addEventListener('DOMContentLoaded', () => {
   renderQueue();
   initRecentlyPlayedControls();
   renderRecentlyPlayed();
+
+  // Day 2: Initialize playlists
+  initPlaylistControls();
+  renderPlaylists();
+
+  // Day 2: Initialize progress bar
+  initProgressBar();
+
+  // Day 2: Theme toggle
+  const themeToggle = el('#themeToggle');
+  if (themeToggle) themeToggle.onclick = toggleTheme;
 
   // Intensity slider
   const intensitySlider = el('#intensity');
