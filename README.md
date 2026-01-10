@@ -11,12 +11,30 @@ A premium retro music platform celebrating legendary Indian artists and timeless
 
 ## ✨ Features
 
+### Core Features
 - **🏆 Legendary Artists** - Explore music from Jagjit Singh, Lata Mangeshkar, Kishore Kumar, A.R. Rahman, and more
 - **🎭 Mood Explorer** - Filter songs by mood (Nostalgic, Romantic, Energetic, Devotional, etc.) with intensity control
 - **▶️ YouTube Integration** - Legal music playback via embedded YouTube videos
 - **❤️ Favorites** - Save your favorite songs locally
 - **🔍 Smart Search** - Search for artists, songs, or albums
 - **🎨 Premium UI** - Glassmorphism design with warm retro aesthetics
+
+### Playback Features
+- **🔀 Shuffle & Repeat** - Shuffle mode and repeat (off/one/all)
+- **📋 Play Queue** - Add songs to queue, manage playback order
+- **🕐 Recently Played** - Track your listening history
+- **📝 Playlists** - Create and manage custom playlists
+- **🌙 Dark/Light Theme** - Toggle between themes with persistence
+- **📊 Audio Visualizer** - Real-time frequency visualization
+- **⏱️ Progress Bar** - Seek within songs with visual feedback
+
+### Day 3 Features (Latest)
+- **⌨️ Keyboard Shortcuts** - Full keyboard control for power users
+- **🔊 Volume Control** - Slider with mute toggle
+- **📤 Share Songs** - Share on WhatsApp, Twitter, Facebook, Telegram
+- **🎵 Mini Player** - Persistent player bar when modal is closed
+- **💾 Save Queue** - Save current queue as a playlist
+- **🔗 URL Sharing** - Direct links to songs
 
 ## 🎨 Design
 
@@ -74,6 +92,22 @@ The platform is fully responsive and works on:
 - 💻 Desktop
 - 📱 Tablet
 - 📱 Mobile
+
+## ⌨️ Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Space` | Play / Pause |
+| `←` | Previous Song |
+| `→` | Next Song |
+| `Shift + ←` | Seek Back 10s |
+| `Shift + →` | Seek Forward 10s |
+| `↑` | Volume Up |
+| `↓` | Volume Down |
+| `M` | Mute / Unmute |
+| `S` | Toggle Shuffle |
+| `R` | Toggle Repeat |
+| `Esc` | Close Modal |
 
 ## 🤝 Contributing
 
