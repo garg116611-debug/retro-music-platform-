@@ -102,6 +102,7 @@ function renderSongs(list) {
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
         <div class="badge">${song.moods[0]}</div>
         <div style="display:flex;gap:6px;align-items:center">
+          <button class="share-song-btn" data-id="${song.id}" title="Share">📤</button>
           <button class="add-to-playlist-btn" data-id="${song.id}" title="Add to Playlist">📝</button>
           <div class="queue-btn" data-id="${song.id}" title="Add to Queue" style="cursor:pointer">${isInQueue ? '✅' : '➕'}</div>
           <div class="fav" data-id="${song.id}">${state.favorites.includes(song.id) ? '❤️' : '🤍'}</div>
@@ -121,6 +122,9 @@ function renderSongs(list) {
         e.stopPropagation();
       } else if (e.target.classList && e.target.classList.contains('add-to-playlist-btn')) {
         showAddToPlaylistModal(song.id);
+        e.stopPropagation();
+      } else if (e.target.classList && e.target.classList.contains('share-song-btn')) {
+        shareSong(song.id);
         e.stopPropagation();
       } else {
         openSong(song.id);
@@ -1546,3 +1550,723 @@ function openMoodExplorer() {
 
 // Make loadHome globally available
 window.loadHome = loadHome;
+
+// ========== DAY 3 FEATURES ==========
+
+// ========== KEYBOARD SHORTCUTS ==========
+let keyboardShortcutsEnabled = true;
+
+function initKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    // Don't trigger shortcuts when typing in inputs
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (!keyboardShortcutsEnabled) return;
+
+    const modal = el('#modal');
+    const isModalOpen = modal && modal.style.display !== 'none';
+    const miniPlayer = el('#miniPlayer');
+    const isMiniPlayerVisible = miniPlayer && miniPlayer.classList.contains('visible');
+
+    // Only handle shortcuts when player is active
+    if (!isModalOpen && !isMiniPlayerVisible) return;
+
+    switch (e.key.toLowerCase()) {
+      case ' ': // Space - Play/Pause
+        e.preventDefault();
+        togglePlayPause();
+        break;
+      case 'arrowright': // Next song
+        if (e.shiftKey) {
+          seekForward(10); // Shift + Right = Skip 10 seconds
+        } else {
+          playNextSong();
+        }
+        break;
+      case 'arrowleft': // Previous song
+        if (e.shiftKey) {
+          seekBackward(10); // Shift + Left = Go back 10 seconds
+        } else {
+          playPrevSong();
+        }
+        break;
+      case 'arrowup': // Volume up
+        e.preventDefault();
+        adjustVolume(0.1);
+        break;
+      case 'arrowdown': // Volume down
+        e.preventDefault();
+        adjustVolume(-0.1);
+        break;
+      case 'm': // Mute toggle
+        toggleMute();
+        break;
+      case 's': // Shuffle toggle
+        toggleShuffle();
+        break;
+      case 'r': // Repeat toggle
+        toggleRepeat();
+        break;
+      case 'q': // Show queue panel
+        if (e.ctrlKey) {
+          e.preventDefault();
+          toggleQueuePanel();
+        }
+        break;
+    }
+  });
+}
+
+// Toggle play/pause for current player
+function togglePlayPause() {
+  // Check for YouTube player
+  if (ytPlayer && typeof ytPlayer.getPlayerState === 'function') {
+    try {
+      const state = ytPlayer.getPlayerState();
+      if (state === 1) { // Playing
+        ytPlayer.pauseVideo();
+        updateMiniPlayerPlayState(false);
+      } else {
+        ytPlayer.playVideo();
+        updateMiniPlayerPlayState(true);
+      }
+    } catch (e) { }
+    return;
+  }
+
+  // Check for audio element
+  const audioEl = el('#modalPlayer audio');
+  if (audioEl) {
+    if (audioEl.paused) {
+      audioEl.play();
+      updateMiniPlayerPlayState(true);
+    } else {
+      audioEl.pause();
+      updateMiniPlayerPlayState(false);
+    }
+  }
+}
+
+// Seek forward by seconds
+function seekForward(seconds) {
+  if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function') {
+    try {
+      const current = ytPlayer.getCurrentTime();
+      ytPlayer.seekTo(current + seconds, true);
+    } catch (e) { }
+    return;
+  }
+
+  const audioEl = el('#modalPlayer audio');
+  if (audioEl) {
+    audioEl.currentTime = Math.min(audioEl.duration, audioEl.currentTime + seconds);
+  }
+}
+
+// Seek backward by seconds
+function seekBackward(seconds) {
+  if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function') {
+    try {
+      const current = ytPlayer.getCurrentTime();
+      ytPlayer.seekTo(Math.max(0, current - seconds), true);
+    } catch (e) { }
+    return;
+  }
+
+  const audioEl = el('#modalPlayer audio');
+  if (audioEl) {
+    audioEl.currentTime = Math.max(0, audioEl.currentTime - seconds);
+  }
+}
+
+// Toggle queue panel visibility
+function toggleQueuePanel() {
+  const queueCard = el('#queueList').closest('.card');
+  if (queueCard) {
+    queueCard.style.display = queueCard.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+// ========== VOLUME CONTROL ==========
+let currentVolume = 1.0;
+let isMuted = false;
+let previousVolume = 1.0;
+
+function adjustVolume(delta) {
+  currentVolume = Math.max(0, Math.min(1, currentVolume + delta));
+  applyVolume(currentVolume);
+  updateVolumeUI();
+}
+
+function setVolume(value) {
+  currentVolume = Math.max(0, Math.min(1, value));
+  applyVolume(currentVolume);
+  updateVolumeUI();
+}
+
+function applyVolume(volume) {
+  // Apply to YouTube player
+  if (ytPlayer && typeof ytPlayer.setVolume === 'function') {
+    try {
+      ytPlayer.setVolume(volume * 100);
+    } catch (e) { }
+  }
+
+  // Apply to audio element
+  const audioEl = el('#modalPlayer audio');
+  if (audioEl) {
+    audioEl.volume = volume;
+  }
+
+  // Apply to Web Audio API
+  if (currentNodes && currentNodes.outGain) {
+    currentNodes.outGain.gain.value = volume;
+  }
+}
+
+function toggleMute() {
+  if (isMuted) {
+    // Unmute
+    isMuted = false;
+    currentVolume = previousVolume;
+    applyVolume(currentVolume);
+  } else {
+    // Mute
+    isMuted = true;
+    previousVolume = currentVolume;
+    currentVolume = 0;
+    applyVolume(0);
+  }
+  updateVolumeUI();
+}
+
+function updateVolumeUI() {
+  const volumeSlider = el('#volumeSlider');
+  const volumeIcon = el('#volumeIcon');
+  const volumeVal = el('#volumeVal');
+
+  if (volumeSlider) {
+    volumeSlider.value = currentVolume;
+  }
+
+  if (volumeIcon) {
+    if (isMuted || currentVolume === 0) {
+      volumeIcon.innerHTML = '🔇';
+    } else if (currentVolume < 0.5) {
+      volumeIcon.innerHTML = '🔉';
+    } else {
+      volumeIcon.innerHTML = '🔊';
+    }
+  }
+
+  if (volumeVal) {
+    volumeVal.textContent = Math.round(currentVolume * 100) + '%';
+  }
+}
+
+function initVolumeControl() {
+  const volumeSlider = el('#volumeSlider');
+  const volumeIcon = el('#volumeIcon');
+
+  if (volumeSlider) {
+    volumeSlider.value = currentVolume;
+    volumeSlider.oninput = (e) => {
+      setVolume(Number(e.target.value));
+      isMuted = false;
+    };
+  }
+
+  if (volumeIcon) {
+    volumeIcon.onclick = toggleMute;
+    volumeIcon.style.cursor = 'pointer';
+  }
+
+  updateVolumeUI();
+}
+
+// ========== SHARE SONG FEATURE ==========
+function shareSong(songId) {
+  const song = DATA.songs.find(s => s.id === songId);
+  if (!song) return;
+
+  const artist = DATA.artists.find(a => a.id === song.artist);
+  const baseUrl = window.location.origin + window.location.pathname;
+  const shareUrl = `${baseUrl}?play=${songId}`;
+  const shareText = `🎵 Listen to "${song.title}" by ${artist?.name || 'Unknown'} on SwarSmriti!`;
+
+  showShareModal(song, shareUrl, shareText);
+}
+
+function showShareModal(song, shareUrl, shareText) {
+  // Create share modal if it doesn't exist
+  let shareModal = el('#shareModal');
+  if (!shareModal) {
+    shareModal = document.createElement('div');
+    shareModal.id = 'shareModal';
+    shareModal.className = 'modal';
+    shareModal.style.display = 'none';
+    document.body.appendChild(shareModal);
+  }
+
+  const artist = DATA.artists.find(a => a.id === song.artist);
+
+  shareModal.innerHTML = `
+    <div class="player card" style="max-width:450px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="font-size:18px">📤 Share Song</strong>
+        <div class="close" id="closeShareModal">✕</div>
+      </div>
+      <div style="margin-top:20px">
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px">
+          <span style="font-size:32px">🎵</span>
+          <div>
+            <div style="font-weight:600">${song.title}</div>
+            <div class="muted small">${artist?.name || 'Unknown'} • ${song.year}</div>
+          </div>
+        </div>
+        
+        <div style="margin-bottom:16px">
+          <label class="muted small" style="display:block;margin-bottom:6px">Share Link</label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="shareUrlInput" class="search" value="${shareUrl}" readonly style="flex:1;min-width:auto">
+            <button class="chip" id="copyLinkBtn">📋 Copy</button>
+          </div>
+        </div>
+        
+        <div style="margin-bottom:12px">
+          <label class="muted small" style="display:block;margin-bottom:8px">Share On</label>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="pill share-btn" data-platform="whatsapp" style="background:#25D366;border:none">
+              📱 WhatsApp
+            </button>
+            <button class="pill share-btn" data-platform="twitter" style="background:#1DA1F2;border:none">
+              🐦 Twitter
+            </button>
+            <button class="pill share-btn" data-platform="facebook" style="background:#1877F2;border:none">
+              📘 Facebook
+            </button>
+            <button class="pill share-btn" data-platform="telegram" style="background:#0088cc;border:none">
+              ✈️ Telegram
+            </button>
+          </div>
+        </div>
+        
+        ${song.youtubeId ? `
+        <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1)">
+          <a href="https://youtube.com/watch?v=${song.youtubeId}" target="_blank" class="pill" style="display:inline-flex;gap:6px;text-decoration:none;background:#FF0000;border:none">
+            ▶️ Open on YouTube
+          </a>
+        </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+
+  shareModal.style.display = 'grid';
+
+  // Close button
+  el('#closeShareModal').onclick = () => {
+    shareModal.style.display = 'none';
+  };
+
+  // Click outside to close
+  shareModal.onclick = (e) => {
+    if (e.target === shareModal) {
+      shareModal.style.display = 'none';
+    }
+  };
+
+  // Copy link button
+  el('#copyLinkBtn').onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      el('#copyLinkBtn').innerHTML = '✅ Copied!';
+      setTimeout(() => {
+        el('#copyLinkBtn').innerHTML = '📋 Copy';
+      }, 2000);
+    } catch (e) {
+      // Fallback for older browsers
+      const input = el('#shareUrlInput');
+      input.select();
+      document.execCommand('copy');
+      el('#copyLinkBtn').innerHTML = '✅ Copied!';
+      setTimeout(() => {
+        el('#copyLinkBtn').innerHTML = '📋 Copy';
+      }, 2000);
+    }
+  };
+
+  // Social share buttons
+  els('.share-btn').forEach(btn => {
+    btn.onclick = () => {
+      const platform = btn.dataset.platform;
+      openSocialShare(platform, shareUrl, shareText);
+    };
+  });
+}
+
+function openSocialShare(platform, url, text) {
+  const encodedUrl = encodeURIComponent(url);
+  const encodedText = encodeURIComponent(text);
+
+  const shareUrls = {
+    whatsapp: `https://wa.me/?text=${encodedText}%20${encodedUrl}`,
+    twitter: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+    telegram: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`
+  };
+
+  if (shareUrls[platform]) {
+    window.open(shareUrls[platform], '_blank', 'width=600,height=400');
+  }
+}
+
+// Share current song (for modal)
+function shareCurrentSong() {
+  if (state.currentQueue.length > 0 && state.currentIndex >= 0) {
+    shareSong(state.currentQueue[state.currentIndex]);
+  }
+}
+
+// ========== MINI PLAYER BAR ==========
+let miniPlayerVisible = false;
+
+function createMiniPlayer() {
+  if (el('#miniPlayer')) return; // Already exists
+
+  const miniPlayer = document.createElement('div');
+  miniPlayer.id = 'miniPlayer';
+  miniPlayer.className = 'mini-player';
+  miniPlayer.innerHTML = `
+    <div class="mini-player-content">
+      <div class="mini-player-info">
+        <div class="mini-thumb">🎵</div>
+        <div class="mini-details">
+          <div class="mini-title">No song playing</div>
+          <div class="mini-artist muted small">-</div>
+        </div>
+      </div>
+      
+      <div class="mini-controls">
+        <button class="mini-btn" id="miniPrev" title="Previous (←)">⏮️</button>
+        <button class="mini-btn mini-play" id="miniPlayPause" title="Play/Pause (Space)">▶️</button>
+        <button class="mini-btn" id="miniNext" title="Next (→)">⏭️</button>
+      </div>
+      
+      <div class="mini-progress">
+        <div class="mini-progress-bar">
+          <div class="mini-progress-fill"></div>
+        </div>
+      </div>
+      
+      <div class="mini-actions">
+        <button class="mini-btn" id="miniShare" title="Share">📤</button>
+        <button class="mini-btn" id="miniExpand" title="Expand Player">🔼</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(miniPlayer);
+
+  // Event listeners
+  el('#miniPrev').onclick = playPrevSong;
+  el('#miniNext').onclick = playNextSong;
+  el('#miniPlayPause').onclick = togglePlayPause;
+  el('#miniShare').onclick = shareCurrentSong;
+  el('#miniExpand').onclick = () => {
+    if (state.currentQueue.length > 0 && state.currentIndex >= 0) {
+      openSong(state.currentQueue[state.currentIndex]);
+    }
+  };
+
+  // Click on song info to expand
+  el('.mini-player-info').onclick = () => {
+    if (state.currentQueue.length > 0 && state.currentIndex >= 0) {
+      openSong(state.currentQueue[state.currentIndex]);
+    }
+  };
+}
+
+function showMiniPlayer() {
+  const miniPlayer = el('#miniPlayer');
+  if (miniPlayer) {
+    miniPlayer.classList.add('visible');
+    miniPlayerVisible = true;
+  }
+}
+
+function hideMiniPlayer() {
+  const miniPlayer = el('#miniPlayer');
+  if (miniPlayer) {
+    miniPlayer.classList.remove('visible');
+    miniPlayerVisible = false;
+  }
+}
+
+function updateMiniPlayer(song) {
+  if (!song) return;
+
+  const artist = DATA.artists.find(a => a.id === song.artist);
+
+  const titleEl = el('.mini-title');
+  const artistEl = el('.mini-artist');
+
+  if (titleEl) titleEl.textContent = song.title;
+  if (artistEl) artistEl.textContent = artist?.name || 'Unknown';
+}
+
+function updateMiniPlayerProgress() {
+  const progressFill = el('.mini-progress-fill');
+  if (!progressFill) return;
+
+  let currentTime = 0;
+  let duration = 0;
+
+  if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function') {
+    try {
+      currentTime = ytPlayer.getCurrentTime() || 0;
+      duration = ytPlayer.getDuration() || 0;
+    } catch (e) { }
+  }
+
+  const audioEl = el('#modalPlayer audio');
+  if (audioEl) {
+    currentTime = audioEl.currentTime || 0;
+    duration = audioEl.duration || 0;
+  }
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  progressFill.style.width = progress + '%';
+}
+
+function updateMiniPlayerPlayState(isPlaying) {
+  const playBtn = el('#miniPlayPause');
+  if (playBtn) {
+    playBtn.innerHTML = isPlaying ? '⏸️' : '▶️';
+  }
+}
+
+// Start mini player progress updates
+let miniPlayerProgressInterval = null;
+
+function startMiniPlayerUpdates() {
+  if (miniPlayerProgressInterval) clearInterval(miniPlayerProgressInterval);
+  miniPlayerProgressInterval = setInterval(updateMiniPlayerProgress, 500);
+}
+
+function stopMiniPlayerUpdates() {
+  if (miniPlayerProgressInterval) {
+    clearInterval(miniPlayerProgressInterval);
+    miniPlayerProgressInterval = null;
+  }
+}
+
+// ========== SAVE QUEUE AS PLAYLIST ==========
+function saveQueueAsPlaylist() {
+  if (state.currentQueue.length === 0) {
+    alert('Queue is empty! Add some songs first.');
+    return;
+  }
+
+  const name = prompt('Enter playlist name:', `Queue Playlist ${new Date().toLocaleDateString()}`);
+  if (!name || name.trim() === '') return;
+
+  const playlist = {
+    id: 'pl_' + Date.now(),
+    name: name.trim(),
+    songs: [...state.currentQueue],
+    createdAt: Date.now()
+  };
+
+  state.playlists.push(playlist);
+  savePlaylists();
+  renderPlaylists();
+
+  // Show confirmation
+  const queueHeader = el('#queueList').parentElement.querySelector('strong');
+  if (queueHeader) {
+    const originalText = queueHeader.innerHTML;
+    queueHeader.innerHTML = '✅ Saved!';
+    setTimeout(() => {
+      queueHeader.innerHTML = originalText;
+    }, 2000);
+  }
+}
+
+// ========== URL PARAMETER HANDLING ==========
+function handleUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+  const playSongId = params.get('play');
+
+  if (playSongId) {
+    const song = DATA.songs.find(s => s.id === playSongId);
+    if (song) {
+      // Small delay to ensure everything is initialized
+      setTimeout(() => {
+        openSong(playSongId);
+      }, 500);
+    }
+  }
+}
+
+// ========== KEYBOARD SHORTCUTS HELP ==========
+function showKeyboardShortcuts() {
+  let shortcutsModal = el('#shortcutsModal');
+  if (!shortcutsModal) {
+    shortcutsModal = document.createElement('div');
+    shortcutsModal.id = 'shortcutsModal';
+    shortcutsModal.className = 'modal';
+    document.body.appendChild(shortcutsModal);
+  }
+
+  shortcutsModal.innerHTML = `
+    <div class="player card" style="max-width:400px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="font-size:18px">⌨️ Keyboard Shortcuts</strong>
+        <div class="close" id="closeShortcutsModal">✕</div>
+      </div>
+      <div style="margin-top:20px">
+        <div class="shortcut-list">
+          <div class="shortcut-item">
+            <span class="key">Space</span>
+            <span>Play / Pause</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="key">←</span>
+            <span>Previous Song</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="key">→</span>
+            <span>Next Song</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="key">Shift + ←</span>
+            <span>Seek Back 10s</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="key">Shift + →</span>
+            <span>Seek Forward 10s</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="key">↑</span>
+            <span>Volume Up</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="key">↓</span>
+            <span>Volume Down</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="key">M</span>
+            <span>Mute / Unmute</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="key">S</span>
+            <span>Toggle Shuffle</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="key">R</span>
+            <span>Toggle Repeat</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="key">Esc</span>
+            <span>Close Modal</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  shortcutsModal.style.display = 'grid';
+
+  el('#closeShortcutsModal').onclick = () => {
+    shortcutsModal.style.display = 'none';
+  };
+
+  shortcutsModal.onclick = (e) => {
+    if (e.target === shortcutsModal) {
+      shortcutsModal.style.display = 'none';
+    }
+  };
+}
+
+// ========== INITIALIZE DAY 3 FEATURES ==========
+function initDay3Features() {
+  // Create mini player
+  createMiniPlayer();
+
+  // Initialize keyboard shortcuts
+  initKeyboardShortcuts();
+
+  // Initialize volume control
+  initVolumeControl();
+
+  // Handle URL parameters
+  handleUrlParams();
+
+  // Add save queue button
+  const clearQueueBtn = el('#clearQueue');
+  if (clearQueueBtn && !el('#saveQueueBtn')) {
+    const saveBtn = document.createElement('button');
+    saveBtn.id = 'saveQueueBtn';
+    saveBtn.className = 'badge';
+    saveBtn.style.cursor = 'pointer';
+    saveBtn.innerHTML = '💾 Save';
+    saveBtn.title = 'Save queue as playlist';
+    saveBtn.onclick = saveQueueAsPlaylist;
+    clearQueueBtn.parentElement.insertBefore(saveBtn, clearQueueBtn);
+  }
+}
+
+// Update DOMContentLoaded to initialize Day 3 features
+document.addEventListener('DOMContentLoaded', () => {
+  // Wait for main initialization to complete
+  setTimeout(initDay3Features, 100);
+});
+
+// Update openSong to manage mini player
+const originalOpenSong = openSong;
+window.openSong = function (id) {
+  originalOpenSong(id);
+
+  // Update mini player
+  const song = DATA.songs.find(s => s.id === id);
+  if (song) {
+    updateMiniPlayer(song);
+    updateMiniPlayerPlayState(true);
+    startMiniPlayerUpdates();
+  }
+};
+
+// Update modal close to show mini player
+const originalCloseModal = el('#closeModal')?.onclick;
+document.addEventListener('DOMContentLoaded', () => {
+  const closeModal = el('#closeModal');
+  if (closeModal) {
+    closeModal.onclick = () => {
+      el('#modal').style.display = 'none';
+
+      // Show mini player if song was playing
+      if (state.currentQueue.length > 0 && state.currentIndex >= 0) {
+        showMiniPlayer();
+      }
+
+      // Keep YouTube player running in background or pause
+      if (ytPlayer) {
+        // Pause for now - can be changed to keep playing
+        try { ytPlayer.pauseVideo(); } catch (e) { }
+      }
+
+      const audioEl = el('#modalPlayer audio');
+      if (audioEl) {
+        audioEl.pause();
+      }
+
+      cleanupAudioGraph();
+      stopProgressUpdates();
+      stopVisualizer();
+    };
+  }
+});
+
+// Make share function globally available
+window.shareSong = shareSong;
+window.showKeyboardShortcuts = showKeyboardShortcuts;

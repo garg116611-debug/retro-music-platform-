@@ -52,6 +52,9 @@
         <button class="pill" id="navMood">
           <span>🎭</span> Mood Explorer
         </button>
+        <button class="pill" id="keyboardShortcutsBtn" title="Keyboard Shortcuts" onclick="showKeyboardShortcuts()">
+          <span>⌨️</span>
+        </button>
       </div>
     </header>
 
@@ -198,12 +201,25 @@
   <!-- Modal Player -->
   <div id="modal" style="display:none" class="modal">
     <div class="player card">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="flex:1;min-width:0">
           <strong id="modalTitle" style="font-size:20px">Song title</strong>
           <div class="muted small" id="modalArtist">artist</div>
         </div>
-        <div class="close" id="closeModal">✕</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <!-- Volume Control -->
+          <div id="volumeControl" style="display:flex;align-items:center;gap:8px">
+            <span id="volumeIcon" title="Click to mute (M)">🔊</span>
+            <input id="volumeSlider" class="slider" type="range" min="0" max="1" step="0.05" value="1"
+              style="width:80px" title="Volume (↑/↓)" />
+            <span id="volumeVal" class="muted small" style="width:40px;text-align:right">100%</span>
+          </div>
+          <!-- Share Button -->
+          <button class="pill" id="modalShareBtn" title="Share this song" onclick="shareCurrentSong()">📤 Share</button>
+          <button class="pill" id="shortcutsBtn" title="Keyboard Shortcuts"
+            onclick="showKeyboardShortcuts()">⌨️</button>
+          <div class="close" id="closeModal">✕</div>
+        </div>
       </div>
 
       <div style="margin-top:20px">

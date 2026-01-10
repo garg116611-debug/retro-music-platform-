@@ -7,23 +7,23 @@
   --bg-secondary: #0D2B2B;
   --bg-card: rgba(13, 59, 62, 0.6);
   --bg-card-hover: rgba(13, 59, 62, 0.85);
-  
+
   /* Accent Colors */
   --accent-gold: #D4A84B;
   --accent-gold-light: #E8C97A;
   --accent-burgundy: #8B2942;
   --accent-teal: #1A5F5F;
-  
+
   /* Text Colors */
   --text-primary: #F5E6D3;
   --text-secondary: #B8A88A;
   --text-muted: #7A8B7A;
-  
+
   /* Effects */
   --glass-border: rgba(212, 168, 75, 0.15);
   --glow-gold: 0 0 30px rgba(212, 168, 75, 0.3);
   --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  
+
   /* Gradients */
   --gradient-bg: linear-gradient(135deg, #0A1F1F 0%, #0D2B2B 50%, #1A2E2E 100%);
   --gradient-card: linear-gradient(135deg, rgba(26, 95, 95, 0.3) 0%, rgba(13, 43, 43, 0.5) 100%);
@@ -31,7 +31,9 @@
 }
 
 /* Reset & Base */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -54,7 +56,7 @@ body::before {
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(212, 168, 75, 0.08) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(139, 41, 66, 0.08) 0%, transparent 50%),
     radial-gradient(circle at 40% 40%, rgba(26, 95, 95, 0.1) 0%, transparent 60%);
@@ -64,8 +66,15 @@ body::before {
 }
 
 @keyframes backgroundPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
 }
 
 /* Floating Particles */
@@ -90,18 +99,62 @@ body::before {
   animation: float 20s infinite ease-in-out;
 }
 
-.particle:nth-child(1) { left: 10%; animation-delay: 0s; animation-duration: 25s; }
-.particle:nth-child(2) { left: 20%; animation-delay: 2s; animation-duration: 20s; }
-.particle:nth-child(3) { left: 30%; animation-delay: 4s; animation-duration: 28s; }
-.particle:nth-child(4) { left: 50%; animation-delay: 1s; animation-duration: 22s; }
-.particle:nth-child(5) { left: 70%; animation-delay: 3s; animation-duration: 26s; }
-.particle:nth-child(6) { left: 85%; animation-delay: 5s; animation-duration: 24s; }
+.particle:nth-child(1) {
+  left: 10%;
+  animation-delay: 0s;
+  animation-duration: 25s;
+}
+
+.particle:nth-child(2) {
+  left: 20%;
+  animation-delay: 2s;
+  animation-duration: 20s;
+}
+
+.particle:nth-child(3) {
+  left: 30%;
+  animation-delay: 4s;
+  animation-duration: 28s;
+}
+
+.particle:nth-child(4) {
+  left: 50%;
+  animation-delay: 1s;
+  animation-duration: 22s;
+}
+
+.particle:nth-child(5) {
+  left: 70%;
+  animation-delay: 3s;
+  animation-duration: 26s;
+}
+
+.particle:nth-child(6) {
+  left: 85%;
+  animation-delay: 5s;
+  animation-duration: 24s;
+}
 
 @keyframes float {
-  0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-  10% { opacity: 0.4; }
-  90% { opacity: 0.4; }
-  100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+
+  0%,
+  100% {
+    transform: translateY(100vh) rotate(0deg);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 0.4;
+  }
+
+  90% {
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: translateY(-100vh) rotate(720deg);
+    opacity: 0;
+  }
 }
 
 /* Container */
@@ -189,7 +242,8 @@ h1 {
 }
 
 /* Pills & Chips */
-.pill, .chip {
+.pill,
+.chip {
   padding: 10px 18px;
   border-radius: 50px;
   background: var(--bg-card);
@@ -205,7 +259,8 @@ h1 {
   gap: 8px;
 }
 
-.pill:hover, .chip:hover {
+.pill:hover,
+.chip:hover {
   background: var(--bg-card-hover);
   border-color: var(--accent-gold);
   transform: translateY(-2px);
@@ -372,7 +427,8 @@ strong {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
-.song-thumb, .song-thumb-wrap img {
+.song-thumb,
+.song-thumb-wrap img {
   width: 72px;
   height: 72px;
   border-radius: 12px;
@@ -550,7 +606,7 @@ footer {
 }
 
 [data-theme="light"] body::before {
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(184, 134, 11, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(165, 42, 42, 0.08) 0%, transparent 50%),
     radial-gradient(circle at 40% 40%, rgba(46, 139, 139, 0.1) 0%, transparent 60%);
@@ -716,7 +772,9 @@ footer {
 }
 
 /* Theme transition */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
@@ -725,7 +783,7 @@ footer {
   main {
     grid-template-columns: 1fr;
   }
-  
+
   .right-col {
     position: static;
   }
@@ -736,29 +794,29 @@ footer {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .controls {
     width: 100%;
   }
-  
+
   .search {
     width: 100%;
     min-width: auto;
   }
-  
+
   .hero {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .grid {
     grid-template-columns: 1fr;
   }
-  
+
   h1 {
     font-size: 24px;
   }
-  
+
   .art {
     width: 120px;
     height: 120px;
@@ -771,6 +829,7 @@ footer {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -781,18 +840,343 @@ footer {
   animation: fadeInUp 0.5s ease-out;
 }
 
-.artist-card, .song-card {
+.artist-card,
+.song-card {
   animation: fadeInUp 0.4s ease-out backwards;
 }
 
-.artist-card:nth-child(1) { animation-delay: 0.1s; }
-.artist-card:nth-child(2) { animation-delay: 0.15s; }
-.artist-card:nth-child(3) { animation-delay: 0.2s; }
-.artist-card:nth-child(4) { animation-delay: 0.25s; }
-.artist-card:nth-child(5) { animation-delay: 0.3s; }
+.artist-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
 
-.song-card:nth-child(1) { animation-delay: 0.1s; }
-.song-card:nth-child(2) { animation-delay: 0.15s; }
-.song-card:nth-child(3) { animation-delay: 0.2s; }
-.song-card:nth-child(4) { animation-delay: 0.25s; }
-.song-card:nth-child(5) { animation-delay: 0.3s; }
+.artist-card:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.artist-card:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.artist-card:nth-child(4) {
+  animation-delay: 0.25s;
+}
+
+.artist-card:nth-child(5) {
+  animation-delay: 0.3s;
+}
+
+.song-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.song-card:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.song-card:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.song-card:nth-child(4) {
+  animation-delay: 0.25s;
+}
+
+.song-card:nth-child(5) {
+  animation-delay: 0.3s;
+}
+
+/* ========== DAY 3: MINI PLAYER ========== */
+.mini-player {
+  position: fixed;
+  bottom: -100px;
+  left: 0;
+  right: 0;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--glass-border);
+  backdrop-filter: blur(20px);
+  z-index: 999;
+  transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4);
+}
+
+.mini-player.visible {
+  bottom: 0;
+}
+
+.mini-player-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.mini-player-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.mini-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: var(--gradient-accent);
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.mini-details {
+  min-width: 0;
+}
+
+.mini-title {
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mini-artist {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.mini-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mini-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.mini-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-gold);
+  transform: scale(1.1);
+}
+
+.mini-btn.mini-play {
+  width: 48px;
+  height: 48px;
+  background: var(--gradient-accent);
+  border-color: transparent;
+  font-size: 18px;
+}
+
+.mini-btn.mini-play:hover {
+  transform: scale(1.15);
+  box-shadow: var(--glow-gold);
+}
+
+.mini-progress {
+  flex: 2;
+  max-width: 300px;
+}
+
+.mini-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.mini-progress-fill {
+  height: 100%;
+  background: var(--gradient-accent);
+  width: 0%;
+  transition: width 0.5s linear;
+}
+
+.mini-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ========== DAY 3: VOLUME CONTROL ========== */
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#volumeIcon {
+  font-size: 20px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+#volumeIcon:hover {
+  transform: scale(1.2);
+}
+
+#volumeSlider {
+  width: 100px;
+  height: 6px;
+}
+
+/* ========== DAY 3: SHARE MODAL ========== */
+.share-btn {
+  color: white !important;
+  padding: 10px 16px !important;
+  font-weight: 500 !important;
+}
+
+.share-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ========== DAY 3: KEYBOARD SHORTCUTS ========== */
+.shortcut-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.shortcut-item:hover {
+  background: var(--bg-card-hover);
+}
+
+.shortcut-item .key {
+  padding: 6px 12px;
+  background: var(--gradient-accent);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 60px;
+  text-align: center;
+}
+
+/* Share button in song card */
+.share-song-btn {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 20px;
+  background: rgba(212, 168, 75, 0.15);
+  border: 1px solid transparent;
+  color: var(--accent-gold);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  opacity: 0;
+}
+
+.song-card:hover .share-song-btn {
+  opacity: 1;
+}
+
+.share-song-btn:hover {
+  background: var(--accent-gold);
+  color: var(--bg-primary);
+}
+
+/* ========== DAY 3: KEYBOARD SHORTCUTS BUTTON ========== */
+.keyboard-shortcuts-btn {
+  position: fixed;
+  bottom: 100px;
+  right: 24px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--gradient-accent);
+  border: none;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+  transition: all 0.3s ease;
+  z-index: 998;
+  opacity: 0.8;
+}
+
+.keyboard-shortcuts-btn:hover {
+  transform: scale(1.1);
+  opacity: 1;
+  box-shadow: var(--glow-gold);
+}
+
+/* ========== RESPONSIVE FOR MINI PLAYER ========== */
+@media (max-width: 768px) {
+  .mini-player-content {
+    padding: 10px 16px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .mini-player-info {
+    flex: 1;
+  }
+
+  .mini-progress {
+    flex: 100%;
+    order: 10;
+    max-width: none;
+  }
+
+  .mini-controls {
+    margin-left: auto;
+  }
+
+  .mini-actions {
+    margin-left: 8px;
+  }
+
+  .mini-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .mini-btn.mini-play {
+    width: 42px;
+    height: 42px;
+  }
+
+  /* Adjust footer to not overlap with mini player */
+  body:has(.mini-player.visible) footer {
+    margin-bottom: 80px;
+  }
+}
+
+/* ========== DAY 3: VOLUME BUTTON IN PLAYER ========== */
+#volumeControl {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* ========== SHARE BUTTON IN MODAL ========== */
+#modalShareBtn {
+  margin-left: auto;
+}
