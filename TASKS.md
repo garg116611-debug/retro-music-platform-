@@ -76,17 +76,40 @@
 
 ---
 
-## 🔮 Day 4 (Jan 11) - Upcoming Tasks
+## ✅ Day 4 (Jan 11) - Enhanced Features
 
-### Planned Features:
-- [ ] Lyrics display panel
-- [ ] Song information/details modal
-- [ ] Genre/Era filtering
-- [ ] Artist page improvements
-- [ ] Album grouping view
-- [ ] Sleep timer
-- [ ] Crossfade between songs
-- [ ] Equalizer presets
+### Completed Tasks:
+- [x] Lyrics display panel
+  - View Lyrics button in song details modal
+  - Full-screen lyrics modal with scrollable content
+  - Search lyrics online link for songs without stored lyrics
+- [x] Song information/details modal
+  - Comprehensive song info (album, year, tempo, BPM, moods)
+  - Artist information section with bio
+  - Genre badges and play count display
+- [x] Genre/Era filtering
+  - Genre filter chips (Ghazal, Film, Classical, etc.)
+  - Era filter by decade (1950s through 2000s+)
+  - Combined filtering with mood selector
+- [x] Equalizer presets
+  - Normal, Rock, Pop, Classical, Jazz, Bass Boost presets
+  - One-click audio profile switching
+- [x] Sleep timer
+  - Preset durations (5, 10, 15, 30, 60 minutes)
+  - Live countdown display
+  - Auto-pause when timer expires
+  - Toast notification on timer end
+- [x] Most played section enhancement
+  - Top 5 most played songs ranking
+  - Play count badges
+  - Clear play counts option
+- [x] Listening statistics modal
+  - Total plays and unique songs count
+  - Top artist and favorite mood analysis
+  - Library overview stats
+
+### Commits:
+- `d3f66b2` - feat: Add Day 4 features - song details, sleep timer, lyrics panel, genre/era filters, statistics, equalizer presets
 
 ---
 
@@ -97,10 +120,11 @@
 - [ ] Offline mode with cached songs
 - [ ] Export/Import playlists (JSON)
 - [ ] Song ratings (1-5 stars)
-- [ ] Most played songs section
-- [ ] Listening statistics
 - [ ] Custom themes/color picker
 - [ ] Collaborative playlists (via URL)
+- [ ] Artist page improvements
+- [ ] Album grouping view
+- [ ] Crossfade between songs
 
 ---
 
@@ -111,7 +135,7 @@
 | 1 | Jan 7-8 | Auto-play, Shuffle, Repeat, Queue, History | 4 |
 | 2 | Jan 9 | Playlists, Theme, Visualizer, Progress Bar | 1 |
 | 3 | Jan 10 | Keyboard Shortcuts, Volume, Share, Mini Player | 2 |
-| 4 | Jan 11 | *Planned* | - |
+| 4 | Jan 11 | Song Details, Sleep Timer, Lyrics, Filters, Stats, EQ | 1 |
 | 5 | Jan 12 | *Planned* | - |
 
 ---
@@ -149,4 +173,4 @@ swarsmriti/
 
 ---
 
-*Last updated: January 10, 2026*
+*Last updated: January 11, 2026*
