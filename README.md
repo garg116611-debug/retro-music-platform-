@@ -28,13 +28,23 @@ A premium retro music platform celebrating legendary Indian artists and timeless
 - **📊 Audio Visualizer** - Real-time frequency visualization
 - **⏱️ Progress Bar** - Seek within songs with visual feedback
 
-### Day 3 Features (Latest)
+### Day 3 Features
 - **⌨️ Keyboard Shortcuts** - Full keyboard control for power users
 - **🔊 Volume Control** - Slider with mute toggle
 - **📤 Share Songs** - Share on WhatsApp, Twitter, Facebook, Telegram
 - **🎵 Mini Player** - Persistent player bar when modal is closed
 - **💾 Save Queue** - Save current queue as a playlist
 - **🔗 URL Sharing** - Direct links to songs
+
+### Day 4 Features (Latest)
+- **ℹ️ Song Details** - Comprehensive info modal with album, tempo, BPM, and artist bio
+- **⏰ Sleep Timer** - Auto-pause music after 5-60 minutes
+- **📜 Lyrics Panel** - View lyrics or search online
+- **🎼 Genre Filtering** - Filter by genre (Ghazal, Film, Classical, etc.)
+- **📅 Era Filtering** - Browse by decade (1950s-2000s+)
+- **📊 Listening Stats** - Track your listening habits
+- **🎚️ Equalizer Presets** - Rock, Pop, Classical, Jazz, Bass Boost
+- **🔥 Most Played** - See your top 5 most played songs
 
 ## 🎨 Design
 
