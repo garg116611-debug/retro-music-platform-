@@ -15,7 +15,13 @@ const state = {
   // Day 2 features
   playlists: JSON.parse(localStorage.getItem('ss_playlists') || '[]'),
   theme: localStorage.getItem('ss_theme') || 'dark',
-  currentSongForPlaylist: null
+  currentSongForPlaylist: null,
+  // Day 4 features
+  playCounts: JSON.parse(localStorage.getItem('ss_playCounts') || '{}'),
+  selectedGenre: null,
+  selectedEra: null,
+  sleepTimer: null,
+  equalizerPreset: 'normal'
 };
 
 // ---------- Helpers ----------
@@ -2270,3 +2276,720 @@ document.addEventListener('DOMContentLoaded', () => {
 // Make share function globally available
 window.shareSong = shareSong;
 window.showKeyboardShortcuts = showKeyboardShortcuts;
+
+// ========== DAY 4 FEATURES ==========
+
+// ========== SONG DETAILS MODAL ==========
+function showSongDetails() {
+  if (state.currentQueue.length === 0 || state.currentIndex < 0) return;
+
+  const songId = state.currentQueue[state.currentIndex];
+  const song = DATA.songs.find(s => s.id === songId);
+  if (!song) return;
+
+  const artist = DATA.artists.find(a => a.id === song.artist);
+  const playCount = state.playCounts[songId] || 0;
+  const isFavorite = state.favorites.includes(songId);
+
+  const modal = el('#songDetailsModal');
+  const content = el('#songDetailsContent');
+
+  if (!modal || !content) return;
+
+  // Get mood labels
+  const moodLabels = song.moods.map(moodId => {
+    const mood = DATA.moods.find(m => m.id === moodId);
+    return mood ? `${mood.emoji} ${mood.label}` : moodId;
+  }).join(', ');
+
+  // Calculate estimated duration
+  const estimatedDuration = song.bpm ? Math.round(60000 / song.bpm * 4) : 'N/A';
+
+  content.innerHTML = `
+    <div class="song-details-header" style="display:flex;gap:20px;align-items:flex-start;margin-bottom:24px">
+      <div class="song-details-thumb" style="width:120px;height:120px;border-radius:16px;background:var(--gradient-accent);display:grid;place-items:center;font-size:48px;flex-shrink:0">
+        ${artist?.image || '🎵'}
+      </div>
+      <div style="flex:1">
+        <h3 style="margin:0 0 8px 0;font-size:24px">${song.title}</h3>
+        <div class="muted" style="margin-bottom:12px">${artist?.name || 'Unknown Artist'}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${isFavorite ? '<span class="badge" style="background:rgba(139,41,66,0.3);color:#FF6B8A">❤️ Favorited</span>' : ''}
+          <span class="badge">🎧 ${playCount} plays</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="song-details-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div class="detail-item" style="padding:16px;background:var(--bg-card);border-radius:12px">
+        <div class="muted small" style="margin-bottom:4px">Album</div>
+        <div style="font-weight:600">📀 ${song.album || 'Single'}</div>
+      </div>
+      <div class="detail-item" style="padding:16px;background:var(--bg-card);border-radius:12px">
+        <div class="muted small" style="margin-bottom:4px">Year</div>
+        <div style="font-weight:600">📅 ${song.year}</div>
+      </div>
+      <div class="detail-item" style="padding:16px;background:var(--bg-card);border-radius:12px">
+        <div class="muted small" style="margin-bottom:4px">Tempo</div>
+        <div style="font-weight:600">⏱️ ${song.tempo} (${song.bpm} BPM)</div>
+      </div>
+      <div class="detail-item" style="padding:16px;background:var(--bg-card);border-radius:12px">
+        <div class="muted small" style="margin-bottom:4px">Moods</div>
+        <div style="font-weight:600">${moodLabels}</div>
+      </div>
+    </div>
+
+    <div class="detail-item" style="padding:16px;background:var(--bg-card);border-radius:12px;margin-bottom:20px">
+      <div class="muted small" style="margin-bottom:8px">Artist Info</div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <span style="font-size:32px">${artist?.image || '🎤'}</span>
+        <div>
+          <div style="font-weight:600">${artist?.name || 'Unknown'}</div>
+          <div class="muted small">${artist?.era || ''} • ${artist?.region || ''}</div>
+          <div class="small" style="margin-top:4px">${artist?.bio || ''}</div>
+        </div>
+      </div>
+    </div>
+
+    ${artist?.genres ? `
+    <div class="detail-item" style="padding:16px;background:var(--bg-card);border-radius:12px;margin-bottom:20px">
+      <div class="muted small" style="margin-bottom:8px">Genres</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${artist.genres.map(g => `<span class="badge">${g}</span>`).join('')}
+      </div>
+    </div>
+    ` : ''}
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+      <button class="chip" onclick="shareSong('${songId}')">📤 Share Song</button>
+      <button class="chip" onclick="showLyricsModal('${songId}')">📜 View Lyrics</button>
+      ${song.youtubeId ? `
+      <a href="https://youtube.com/watch?v=${song.youtubeId}" target="_blank" class="chip" style="text-decoration:none">▶️ YouTube</a>
+      ` : ''}
+    </div>
+  `;
+
+  modal.style.display = 'grid';
+
+  // Close button handler
+  el('#closeSongDetailsModal').onclick = () => {
+    modal.style.display = 'none';
+  };
+
+  // Click outside to close
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      modal.style.display = 'none';
+    }
+  };
+}
+
+// ========== SLEEP TIMER ==========
+let sleepTimerInterval = null;
+let sleepTimerEndTime = null;
+
+function showSleepTimer() {
+  const modal = el('#sleepTimerModal');
+  if (modal) {
+    modal.style.display = 'grid';
+    updateSleepTimerStatus();
+  }
+
+  // Close button handler
+  el('#closeSleepTimerModal').onclick = () => {
+    modal.style.display = 'none';
+  };
+
+  // Click outside to close
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      modal.style.display = 'none';
+    }
+  };
+}
+
+function setSleepTimer(minutes) {
+  // Cancel existing timer
+  if (sleepTimerInterval) {
+    clearInterval(sleepTimerInterval);
+    sleepTimerInterval = null;
+  }
+
+  if (minutes === 0) {
+    cancelSleepTimer();
+    return;
+  }
+
+  sleepTimerEndTime = Date.now() + (minutes * 60 * 1000);
+  state.sleepTimer = sleepTimerEndTime;
+
+  // Update status display
+  updateSleepTimerStatus();
+
+  // Start countdown interval
+  sleepTimerInterval = setInterval(() => {
+    const remaining = sleepTimerEndTime - Date.now();
+
+    if (remaining <= 0) {
+      // Timer expired - stop playback
+      stopPlayback();
+      cancelSleepTimer();
+      showSleepTimerNotification();
+    } else {
+      updateSleepTimerStatus();
+    }
+  }, 1000);
+
+  // Highlight selected option
+  els('.timer-option').forEach(btn => {
+    btn.classList.remove('active');
+    if (parseInt(btn.dataset.minutes) === minutes) {
+      btn.classList.add('active');
+    }
+  });
+
+  // Update sleep timer button in modal
+  updateSleepTimerButton();
+}
+
+function cancelSleepTimer() {
+  if (sleepTimerInterval) {
+    clearInterval(sleepTimerInterval);
+    sleepTimerInterval = null;
+  }
+  sleepTimerEndTime = null;
+  state.sleepTimer = null;
+
+  const statusEl = el('#sleepTimerStatus');
+  if (statusEl) {
+    statusEl.innerHTML = 'Timer not set';
+  }
+
+  // Remove active class from all options
+  els('.timer-option').forEach(btn => {
+    btn.classList.remove('active');
+  });
+
+  updateSleepTimerButton();
+}
+
+function updateSleepTimerStatus() {
+  const statusEl = el('#sleepTimerStatus');
+  if (!statusEl) return;
+
+  if (!sleepTimerEndTime) {
+    statusEl.innerHTML = 'Timer not set';
+    return;
+  }
+
+  const remaining = sleepTimerEndTime - Date.now();
+  if (remaining <= 0) {
+    statusEl.innerHTML = 'Timer expired';
+    return;
+  }
+
+  const totalSeconds = Math.ceil(remaining / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  statusEl.innerHTML = `
+    <div style="font-size:32px;font-weight:600;color:var(--accent-gold)">${minutes}:${seconds.toString().padStart(2, '0')}</div>
+    <div class="muted small" style="margin-top:8px">⏰ Music will pause automatically</div>
+  `;
+}
+
+function updateSleepTimerButton() {
+  const btn = el('#sleepTimerBtn');
+  if (!btn) return;
+
+  if (sleepTimerEndTime) {
+    const remaining = sleepTimerEndTime - Date.now();
+    const minutes = Math.ceil(remaining / 60000);
+    btn.innerHTML = `⏰ ${minutes}m`;
+    btn.style.background = 'rgba(212, 168, 75, 0.3)';
+  } else {
+    btn.innerHTML = '⏰ Timer';
+    btn.style.background = '';
+  }
+}
+
+function stopPlayback() {
+  // Stop YouTube player
+  if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
+    try {
+      ytPlayer.pauseVideo();
+    } catch (e) { }
+  }
+
+  // Stop audio element
+  const audioEl = el('#modalPlayer audio');
+  if (audioEl) {
+    audioEl.pause();
+  }
+
+  // Update mini player state
+  updateMiniPlayerPlayState(false);
+}
+
+function showSleepTimerNotification() {
+  // Create a notification toast
+  let toast = el('#sleepToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'sleepToast';
+    toast.className = 'sleep-toast';
+    document.body.appendChild(toast);
+  }
+
+  toast.innerHTML = `
+    <span>😴</span>
+    <span>Sleep timer ended. Music paused.</span>
+  `;
+  toast.classList.add('visible');
+
+  setTimeout(() => {
+    toast.classList.remove('visible');
+  }, 4000);
+}
+
+// ========== LYRICS DISPLAY ==========
+// Note: Lyrics are not stored locally to respect copyright.
+// The modal provides links to search for lyrics online.
+const LYRICS_DATABASE = {
+  // Lyrics are fetched dynamically or user is directed to search online
+};
+
+function showLyricsModal(songId) {
+  const song = DATA.songs.find(s => s.id === songId);
+  if (!song) return;
+
+  const artist = DATA.artists.find(a => a.id === song.artist);
+
+  // Create lyrics modal if not exists
+  let lyricsModal = el('#lyricsModal');
+  if (!lyricsModal) {
+    lyricsModal = document.createElement('div');
+    lyricsModal.id = 'lyricsModal';
+    lyricsModal.className = 'modal';
+    document.body.appendChild(lyricsModal);
+  }
+
+  const lyricsData = LYRICS_DATABASE[songId];
+  const hasLyrics = !!lyricsData;
+
+  lyricsModal.innerHTML = `
+    <div class="player card lyrics-modal-content" style="max-width:550px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:1px solid var(--glass-border)">
+        <div>
+          <strong style="font-size:18px">📜 Lyrics</strong>
+          <div class="muted small">${song.title} - ${artist?.name || 'Unknown'}</div>
+        </div>
+        <div class="close" id="closeLyricsModal">✕</div>
+      </div>
+      <div class="lyrics-content" style="flex:1;overflow-y:auto;padding:20px 0">
+        ${hasLyrics ? `
+          <pre style="font-family:inherit;white-space:pre-wrap;word-wrap:break-word;line-height:1.8;font-size:15px;margin:0">${lyricsData.lyrics}</pre>
+        ` : `
+          <div style="text-align:center;padding:40px 20px">
+            <div style="font-size:48px;margin-bottom:16px">📝</div>
+            <div style="font-size:18px;font-weight:600;margin-bottom:8px">Lyrics Not Available</div>
+            <div class="muted">We don't have lyrics for this song yet.</div>
+            <div class="muted small" style="margin-top:16px">
+              Try searching online for "${song.title}" lyrics
+            </div>
+            <a href="https://www.google.com/search?q=${encodeURIComponent(song.title + ' ' + (artist?.name || '') + ' lyrics')}" 
+               target="_blank" 
+               class="chip" 
+               style="margin-top:20px;display:inline-block;text-decoration:none">
+              🔍 Search Lyrics
+            </a>
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+
+  lyricsModal.style.display = 'grid';
+
+  // Close button handler
+  el('#closeLyricsModal').onclick = () => {
+    lyricsModal.style.display = 'none';
+  };
+
+  // Click outside to close
+  lyricsModal.onclick = (e) => {
+    if (e.target === lyricsModal) {
+      lyricsModal.style.display = 'none';
+    }
+  };
+}
+
+// ========== GENRE & ERA FILTERING ==========
+function initGenreFilters() {
+  const genreContainer = el('#genreFilters');
+  const eraContainer = el('#eraFilters');
+
+  if (!genreContainer || !eraContainer) return;
+
+  // Get unique genres from all artists
+  const allGenres = new Set();
+  DATA.artists.forEach(artist => {
+    if (artist.genres) {
+      artist.genres.forEach(genre => allGenres.add(genre));
+    }
+  });
+
+  // Define eras
+  const eras = [
+    { id: '1950s', label: '1950s', range: [1950, 1959] },
+    { id: '1960s', label: '1960s', range: [1960, 1969] },
+    { id: '1970s', label: '1970s', range: [1970, 1979] },
+    { id: '1980s', label: '1980s', range: [1980, 1989] },
+    { id: '1990s', label: '1990s', range: [1990, 1999] },
+    { id: '2000s', label: '2000s+', range: [2000, 2030] }
+  ];
+
+  // Render genre chips
+  genreContainer.innerHTML = `
+    <button class="chip genre-filter ${state.selectedGenre === null ? 'active' : ''}" data-genre="all">All</button>
+    ${Array.from(allGenres).map(genre => `
+      <button class="chip genre-filter ${state.selectedGenre === genre ? 'active' : ''}" data-genre="${genre}">${genre}</button>
+    `).join('')}
+  `;
+
+  // Render era chips
+  eraContainer.innerHTML = `
+    <button class="chip era-filter ${state.selectedEra === null ? 'active' : ''}" data-era="all">All</button>
+    ${eras.map(era => `
+      <button class="chip era-filter ${state.selectedEra === era.id ? 'active' : ''}" data-era="${era.id}">${era.label}</button>
+    `).join('')}
+  `;
+
+  // Genre filter click handlers
+  els('.genre-filter').forEach(btn => {
+    btn.onclick = () => {
+      const genre = btn.dataset.genre;
+      state.selectedGenre = genre === 'all' ? null : genre;
+
+      // Update active states
+      els('.genre-filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      applyFilters();
+    };
+  });
+
+  // Era filter click handlers
+  els('.era-filter').forEach(btn => {
+    btn.onclick = () => {
+      const era = btn.dataset.era;
+      state.selectedEra = era === 'all' ? null : era;
+
+      // Update active states
+      els('.era-filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      applyFilters();
+    };
+  });
+}
+
+function applyFilters() {
+  let filteredSongs = [...DATA.songs];
+
+  // Apply genre filter
+  if (state.selectedGenre) {
+    const artistsInGenre = DATA.artists
+      .filter(a => a.genres && a.genres.includes(state.selectedGenre))
+      .map(a => a.id);
+
+    filteredSongs = filteredSongs.filter(s => artistsInGenre.includes(s.artist));
+  }
+
+  // Apply era filter
+  if (state.selectedEra) {
+    const eraRanges = {
+      '1950s': [1950, 1959],
+      '1960s': [1960, 1969],
+      '1970s': [1970, 1979],
+      '1980s': [1980, 1989],
+      '1990s': [1990, 1999],
+      '2000s': [2000, 2030]
+    };
+
+    const range = eraRanges[state.selectedEra];
+    if (range) {
+      filteredSongs = filteredSongs.filter(s => s.year >= range[0] && s.year <= range[1]);
+    }
+  }
+
+  // Apply mood filter if selected
+  if (state.selectedMood) {
+    filteredSongs = filteredSongs.filter(s => s.moods && s.moods.includes(state.selectedMood));
+  }
+
+  // Re-render songs with filters
+  renderSongs(filteredSongs);
+
+  // Update results count
+  const resultsCount = el('#resultsCount');
+  if (resultsCount) {
+    resultsCount.textContent = filteredSongs.length;
+  }
+
+  // Update title
+  const listTitle = el('#listTitle');
+  if (listTitle) {
+    const genreText = state.selectedGenre ? ` • ${state.selectedGenre}` : '';
+    const eraText = state.selectedEra ? ` • ${state.selectedEra}` : '';
+    listTitle.innerHTML = `🎶 Songs${genreText}${eraText}`;
+  }
+}
+
+// ========== MOST PLAYED SECTION ==========
+function renderMostPlayed() {
+  const container = el('#mostPlayedList');
+  if (!container) return;
+
+  // Get songs sorted by play count
+  const songCounts = Object.entries(state.playCounts)
+    .map(([songId, count]) => ({ songId, count }))
+    .filter(item => item.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5); // Top 5
+
+  if (songCounts.length === 0) {
+    container.innerHTML = '<span class="muted small">No plays yet</span>';
+    return;
+  }
+
+  container.innerHTML = songCounts.map((item, index) => {
+    const song = DATA.songs.find(s => s.id === item.songId);
+    if (!song) return '';
+
+    const artist = DATA.artists.find(a => a.id === song.artist);
+
+    return `
+      <div class="most-played-item" onclick="openSong('${item.songId}')" style="display:flex;align-items:center;gap:12px;padding:10px;margin-bottom:8px;border-radius:10px;background:var(--gradient-card);cursor:pointer;transition:all 0.3s ease">
+        <span style="font-size:16px;font-weight:700;color:var(--accent-gold);width:20px">${index + 1}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${song.title}</div>
+          <div class="muted small">${artist?.name || 'Unknown'}</div>
+        </div>
+        <span class="badge">${item.count} plays</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// Clear play counts
+function clearPlayCounts() {
+  state.playCounts = {};
+  localStorage.setItem('ss_playCounts', '{}');
+  renderMostPlayed();
+}
+
+// ========== LISTENING STATISTICS ==========
+function showStatistics() {
+  const modal = el('#statsModal');
+  const content = el('#statsContent');
+
+  if (!modal || !content) return;
+
+  // Calculate statistics
+  const totalPlays = Object.values(state.playCounts).reduce((sum, count) => sum + count, 0);
+  const uniqueSongsPlayed = Object.keys(state.playCounts).length;
+  const favoriteCount = state.favorites.length;
+  const playlistCount = state.playlists.length;
+  const recentlyPlayedCount = state.recentlyPlayed ? state.recentlyPlayed.length : 0;
+
+  // Most played artist
+  const artistPlayCounts = {};
+  Object.entries(state.playCounts).forEach(([songId, count]) => {
+    const song = DATA.songs.find(s => s.id === songId);
+    if (song) {
+      artistPlayCounts[song.artist] = (artistPlayCounts[song.artist] || 0) + count;
+    }
+  });
+
+  const topArtistId = Object.entries(artistPlayCounts)
+    .sort((a, b) => b[1] - a[1])[0]?.[0];
+  const topArtist = DATA.artists.find(a => a.id === topArtistId);
+
+  // Most played mood
+  const moodPlayCounts = {};
+  Object.entries(state.playCounts).forEach(([songId, count]) => {
+    const song = DATA.songs.find(s => s.id === songId);
+    if (song && song.moods) {
+      song.moods.forEach(mood => {
+        moodPlayCounts[mood] = (moodPlayCounts[mood] || 0) + count;
+      });
+    }
+  });
+
+  const topMoodId = Object.entries(moodPlayCounts)
+    .sort((a, b) => b[1] - a[1])[0]?.[0];
+  const topMood = DATA.moods.find(m => m.id === topMoodId);
+
+  content.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:16px;margin-bottom:24px">
+      <div class="stat-card" style="padding:20px;background:var(--bg-card);border-radius:16px;text-align:center">
+        <div style="font-size:36px;font-weight:700;color:var(--accent-gold)">${totalPlays}</div>
+        <div class="muted small">Total Plays</div>
+      </div>
+      <div class="stat-card" style="padding:20px;background:var(--bg-card);border-radius:16px;text-align:center">
+        <div style="font-size:36px;font-weight:700;color:var(--accent-gold)">${uniqueSongsPlayed}</div>
+        <div class="muted small">Unique Songs</div>
+      </div>
+      <div class="stat-card" style="padding:20px;background:var(--bg-card);border-radius:16px;text-align:center">
+        <div style="font-size:36px;font-weight:700;color:var(--accent-burgundy)">${favoriteCount}</div>
+        <div class="muted small">Favorites</div>
+      </div>
+      <div class="stat-card" style="padding:20px;background:var(--bg-card);border-radius:16px;text-align:center">
+        <div style="font-size:36px;font-weight:700;color:var(--accent-teal)">${playlistCount}</div>
+        <div class="muted small">Playlists</div>
+      </div>
+    </div>
+
+    ${topArtist ? `
+    <div style="padding:16px;background:var(--bg-card);border-radius:12px;margin-bottom:16px">
+      <div class="muted small" style="margin-bottom:8px">📊 Top Artist</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:32px">${topArtist.image || '🎤'}</span>
+        <div>
+          <div style="font-weight:600">${topArtist.name}</div>
+          <div class="muted small">${artistPlayCounts[topArtistId]} plays</div>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+
+    ${topMood ? `
+    <div style="padding:16px;background:var(--bg-card);border-radius:12px;margin-bottom:16px">
+      <div class="muted small" style="margin-bottom:8px">🎭 Favorite Mood</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:32px">${topMood.emoji}</span>
+        <div>
+          <div style="font-weight:600">${topMood.label}</div>
+          <div class="muted small">${moodPlayCounts[topMoodId]} plays</div>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+
+    <div style="padding:16px;background:var(--bg-card);border-radius:12px">
+      <div class="muted small" style="margin-bottom:12px">📚 Library</div>
+      <div style="display:grid;gap:8px">
+        <div style="display:flex;justify-content:space-between">
+          <span>Total Artists</span>
+          <span style="font-weight:600">${DATA.artists.length}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span>Total Songs</span>
+          <span style="font-weight:600">${DATA.songs.length}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span>Recently Played</span>
+          <span style="font-weight:600">${recentlyPlayedCount}</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  modal.style.display = 'grid';
+
+  // Close button handler
+  el('#closeStatsModal').onclick = () => {
+    modal.style.display = 'none';
+  };
+
+  // Click outside to close
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      modal.style.display = 'none';
+    }
+  };
+}
+
+// ========== EQUALIZER PRESETS ==========
+const EQUALIZER_PRESETS = {
+  normal: { bass: 0, treble: 0, reverb: 0, name: 'Normal' },
+  rock: { bass: 4, treble: 3, reverb: 0.2, name: 'Rock' },
+  pop: { bass: 2, treble: 4, reverb: 0.1, name: 'Pop' },
+  classical: { bass: 0, treble: 2, reverb: 0.4, name: 'Classical' },
+  jazz: { bass: 3, treble: 2, reverb: 0.3, name: 'Jazz' },
+  bass: { bass: 8, treble: 0, reverb: 0.1, name: 'Bass Boost' }
+};
+
+function applyEqualizerPreset(presetName) {
+  const preset = EQUALIZER_PRESETS[presetName];
+  if (!preset) return;
+
+  state.equalizerPreset = presetName;
+
+  // Update sliders
+  const bassEl = el('#bass');
+  const trebleEl = el('#treble');
+  const reverbEl = el('#reverb');
+
+  if (bassEl) {
+    bassEl.value = preset.bass;
+    el('#bassVal').textContent = preset.bass + ' dB';
+  }
+  if (trebleEl) {
+    trebleEl.value = preset.treble;
+    el('#trebleVal').textContent = preset.treble + ' dB';
+  }
+  if (reverbEl) {
+    reverbEl.value = preset.reverb;
+    el('#reverbVal').textContent = Math.round(preset.reverb * 100) + '%';
+  }
+
+  // Apply to audio
+  applyFilterValues({ bass: preset.bass, treble: preset.treble, reverb: preset.reverb });
+
+  // Update active preset button
+  els('.eq-preset').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.dataset.preset === presetName) {
+      btn.classList.add('active');
+    }
+  });
+}
+
+// ========== INITIALIZE DAY 4 FEATURES ==========
+function initDay4Features() {
+  // Initialize genre and era filters
+  initGenreFilters();
+
+  // Render most played section
+  renderMostPlayed();
+
+  // Add clear play counts handler
+  const clearPlayCountsBtn = el('#clearPlayCounts');
+  if (clearPlayCountsBtn) {
+    clearPlayCountsBtn.onclick = clearPlayCounts;
+  }
+
+  // Set default equalizer preset
+  els('.eq-preset').forEach(btn => {
+    if (btn.dataset.preset === 'normal') {
+      btn.classList.add('active');
+    }
+  });
+}
+
+// Update DOMContentLoaded to initialize Day 4 features
+document.addEventListener('DOMContentLoaded', () => {
+  // Wait for main initialization to complete
+  setTimeout(initDay4Features, 200);
+});
+
+// Make Day 4 functions globally available
+window.showSongDetails = showSongDetails;
+window.showSleepTimer = showSleepTimer;
+window.setSleepTimer = setSleepTimer;
+window.cancelSleepTimer = cancelSleepTimer;
+window.showLyricsModal = showLyricsModal;
+window.showStatistics = showStatistics;
+window.applyEqualizerPreset = applyEqualizerPreset;

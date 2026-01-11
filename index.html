@@ -52,6 +52,9 @@
         <button class="pill" id="navMood">
           <span>🎭</span> Mood Explorer
         </button>
+        <button class="pill" id="viewStats" onclick="showStatistics()">
+          <span>📊</span> Stats
+        </button>
         <button class="pill" id="keyboardShortcutsBtn" title="Keyboard Shortcuts" onclick="showKeyboardShortcuts()">
           <span>⌨️</span>
         </button>
@@ -185,6 +188,31 @@
             <span class="muted small">No history yet</span>
           </div>
         </div>
+
+        <!-- Genre & Era Filters -->
+        <div class="card">
+          <strong style="font-size:16px">🎼 Filter by Genre</strong>
+          <div id="genreFilters" class="moodRow" style="margin-top:12px">
+            <!-- Will be populated by JavaScript -->
+          </div>
+          <div style="margin-top:16px">
+            <strong style="font-size:16px">📅 Filter by Era</strong>
+            <div id="eraFilters" class="moodRow" style="margin-top:12px">
+              <!-- Will be populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Most Played -->
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <strong style="font-size:16px">🔥 Most Played</strong>
+            <button class="badge" id="clearPlayCounts" style="cursor:pointer">🗑️ Clear</button>
+          </div>
+          <div id="mostPlayedList" style="max-height:180px;overflow-y:auto">
+            <span class="muted small">No plays yet</span>
+          </div>
+        </div>
       </aside>
     </main>
 
@@ -216,6 +244,8 @@
           </div>
           <!-- Share Button -->
           <button class="pill" id="modalShareBtn" title="Share this song" onclick="shareCurrentSong()">📤 Share</button>
+          <button class="pill" id="songDetailsBtn" title="Song Details" onclick="showSongDetails()">ℹ️ Info</button>
+          <button class="pill" id="sleepTimerBtn" title="Sleep Timer" onclick="showSleepTimer()">⏰ Timer</button>
           <button class="pill" id="shortcutsBtn" title="Keyboard Shortcuts"
             onclick="showKeyboardShortcuts()">⌨️</button>
           <div class="close" id="closeModal">✕</div>
@@ -288,6 +318,19 @@
             <label style="width:100px" class="muted small">🎤 Vocal</label>
             <button id="vocalToggle" class="pill">Center Cancel: Off</button>
           </div>
+
+          <!-- Equalizer Presets -->
+          <div style="display:flex;gap:12px;align-items:center;margin-top:8px">
+            <label style="width:100px" class="muted small">🎚️ Presets</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;flex:1">
+              <button class="chip eq-preset" data-preset="normal" onclick="applyEqualizerPreset('normal')">Normal</button>
+              <button class="chip eq-preset" data-preset="rock" onclick="applyEqualizerPreset('rock')">Rock</button>
+              <button class="chip eq-preset" data-preset="pop" onclick="applyEqualizerPreset('pop')">Pop</button>
+              <button class="chip eq-preset" data-preset="classical" onclick="applyEqualizerPreset('classical')">Classical</button>
+              <button class="chip eq-preset" data-preset="jazz" onclick="applyEqualizerPreset('jazz')">Jazz</button>
+              <button class="chip eq-preset" data-preset="bass" onclick="applyEqualizerPreset('bass')">Bass Boost</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -322,6 +365,58 @@
         <div id="playlistOptions" style="max-height:250px;overflow-y:auto">
           <span class="muted small">No playlists available</span>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Song Details Modal -->
+  <div id="songDetailsModal" class="modal" style="display:none">
+    <div class="player card" style="max-width:500px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="font-size:18px">ℹ️ Song Details</strong>
+        <div class="close" id="closeSongDetailsModal">✕</div>
+      </div>
+      <div id="songDetailsContent" style="margin-top:20px">
+        <!-- Content will be populated by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Sleep Timer Modal -->
+  <div id="sleepTimerModal" class="modal" style="display:none">
+    <div class="player card" style="max-width:400px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="font-size:18px">⏰ Sleep Timer</strong>
+        <div class="close" id="closeSleepTimerModal">✕</div>
+      </div>
+      <div style="margin-top:20px">
+        <div style="margin-bottom:16px">
+          <label class="muted small" style="display:block;margin-bottom:8px">Timer Duration</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="chip timer-option" data-minutes="5" onclick="setSleepTimer(5)">5 min</button>
+            <button class="chip timer-option" data-minutes="10" onclick="setSleepTimer(10)">10 min</button>
+            <button class="chip timer-option" data-minutes="15" onclick="setSleepTimer(15)">15 min</button>
+            <button class="chip timer-option" data-minutes="30" onclick="setSleepTimer(30)">30 min</button>
+            <button class="chip timer-option" data-minutes="60" onclick="setSleepTimer(60)">60 min</button>
+            <button class="chip timer-option" data-minutes="0" onclick="cancelSleepTimer()">Cancel</button>
+          </div>
+        </div>
+        <div id="sleepTimerStatus" class="muted small" style="text-align:center;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px">
+          Timer not set
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Modal -->
+  <div id="statsModal" class="modal" style="display:none">
+    <div class="player card" style="max-width:600px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="font-size:18px">📊 Listening Statistics</strong>
+        <div class="close" id="closeStatsModal">✕</div>
+      </div>
+      <div id="statsContent" style="margin-top:20px">
+        <!-- Content will be populated by JavaScript -->
       </div>
     </div>
   </div>

@@ -1176,7 +1176,181 @@ footer {
   align-items: center;
 }
 
-/* ========== SHARE BUTTON IN MODAL ========== */
 #modalShareBtn {
   margin-left: auto;
+}
+
+/* ========== DAY 4: LYRICS MODAL ========== */
+.lyrics-modal-content {
+  background: var(--bg-secondary);
+}
+
+.lyrics-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.lyrics-content::-webkit-scrollbar-track {
+  background: var(--bg-card);
+  border-radius: 4px;
+}
+
+.lyrics-content::-webkit-scrollbar-thumb {
+  background: var(--accent-gold);
+  border-radius: 4px;
+}
+
+.lyrics-content::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-gold-light);
+}
+
+/* ========== DAY 4: SLEEP TIMER ========== */
+.timer-option {
+  transition: all 0.3s ease;
+}
+
+.timer-option.active {
+  background: var(--gradient-accent);
+  color: white;
+  border-color: transparent;
+}
+
+.timer-option:hover {
+  transform: translateY(-2px);
+}
+
+/* Sleep Timer Toast Notification */
+.sleep-toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 1001;
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+  opacity: 0;
+}
+
+.sleep-toast.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.sleep-toast span:first-child {
+  font-size: 24px;
+}
+
+/* ========== DAY 4: MOST PLAYED ========== */
+.most-played-item:hover {
+  background: var(--bg-card-hover) !important;
+  transform: translateX(4px);
+}
+
+/* ========== DAY 4: SONG DETAILS ========== */
+.song-details-thumb {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.detail-item {
+  transition: all 0.3s ease;
+}
+
+.detail-item:hover {
+  border-color: var(--accent-gold);
+  transform: translateY(-2px);
+}
+
+/* ========== DAY 4: EQUALIZER PRESETS ========== */
+.eq-preset {
+  transition: all 0.3s ease;
+}
+
+.eq-preset.active {
+  background: var(--gradient-accent);
+  color: white;
+  border-color: transparent;
+  box-shadow: var(--glow-gold);
+}
+
+.eq-preset:hover {
+  transform: translateY(-2px);
+}
+
+/* ========== DAY 4: GENRE & ERA FILTERS ========== */
+.genre-filter,
+.era-filter {
+  transition: all 0.3s ease;
+}
+
+.genre-filter.active,
+.era-filter.active {
+  background: var(--gradient-accent);
+  color: white;
+  border-color: transparent;
+}
+
+.genre-filter:hover,
+.era-filter:hover {
+  transform: translateY(-2px);
+}
+
+/* ========== DAY 4: STATISTICS ANIMATIONS ========== */
+.stat-card {
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--glow-gold);
+}
+
+/* ========== DAY 4: LYRICS BUTTON IN SONG CARD ========== */
+.lyrics-btn {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 20px;
+  background: rgba(212, 168, 75, 0.15);
+  border: 1px solid transparent;
+  color: var(--accent-gold);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  opacity: 0;
+}
+
+.song-card:hover .lyrics-btn {
+  opacity: 1;
+}
+
+.lyrics-btn:hover {
+  background: var(--accent-gold);
+  color: var(--bg-primary);
+}
+
+/* ========== DAY 4: RESPONSIVE ADJUSTMENTS ========== */
+@media (max-width: 768px) {
+  .song-details-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .song-details-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .sleep-toast {
+    width: 90%;
+    left: 5%;
+    transform: translateX(0) translateY(100px);
+  }
+
+  .sleep-toast.visible {
+    transform: translateX(0) translateY(0);
+  }
 }
