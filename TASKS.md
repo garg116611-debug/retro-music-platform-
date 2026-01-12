@@ -113,18 +113,46 @@
 
 ---
 
-## 🔮 Day 5 (Jan 12) - Future Tasks
+## ✅ Day 5 (Jan 12) - PWA & Advanced Features
 
-### Planned Features:
-- [ ] PWA (Progressive Web App) support
-- [ ] Offline mode with cached songs
-- [ ] Export/Import playlists (JSON)
-- [ ] Song ratings (1-5 stars)
-- [ ] Custom themes/color picker
-- [ ] Collaborative playlists (via URL)
-- [ ] Artist page improvements
-- [ ] Album grouping view
-- [ ] Crossfade between songs
+### Completed Tasks:
+- [x] PWA (Progressive Web App) support
+  - manifest.json with app metadata and icons
+  - Service Worker for caching and offline support
+  - Offline fallback page with branded styling
+  - Install prompt for mobile and desktop
+- [x] Export/Import playlists (JSON)
+  - Export all playlists, favorites, ratings to JSON file
+  - Import and merge data from backup
+  - Data summary in export modal
+- [x] Song ratings (1-5 stars)
+  - Interactive star rating component
+  - Ratings saved to localStorage
+  - Display ratings in song details
+- [x] Custom themes/color picker
+  - 6 preset color themes (Deep Teal, Midnight, Sunset, Forest, Lavender, Coffee)
+  - Custom color picker for primary, accent, and highlight colors
+  - Theme persistence across sessions
+- [x] Artist page improvements
+  - Enhanced artist hero with stats (songs, plays, avg rating)
+  - Album grouping within artist page
+  - Play All and Shuffle options
+- [x] Album grouping view
+  - Toggle between list and album view
+  - Albums sorted by year
+  - Play entire album functionality
+- [x] Crossfade between songs
+  - Toggle crossfade on/off
+  - Smooth volume fade transition
+  - Visual crossfade indicator
+- [x] Toast notification system
+  - Success, error, info, and warning toasts
+  - Auto-dismiss with animation
+
+### Commits:
+- `pending` - feat: Add PWA support with service worker and offline mode
+- `pending` - feat: Add export/import playlists and song ratings
+- `pending` - feat: Add custom themes, crossfade, and enhanced views
 
 ---
 
@@ -136,7 +164,7 @@
 | 2 | Jan 9 | Playlists, Theme, Visualizer, Progress Bar | 1 |
 | 3 | Jan 10 | Keyboard Shortcuts, Volume, Share, Mini Player | 2 |
 | 4 | Jan 11 | Song Details, Sleep Timer, Lyrics, Filters, Stats, EQ | 1 |
-| 5 | Jan 12 | *Planned* | - |
+| 5 | Jan 12 | PWA, Export/Import, Ratings, Themes, Crossfade, Album View | 3 |
 
 ---
 
@@ -170,7 +198,13 @@ swarsmriti/
 - `ss_recent` - Recently played
 - `ss_playlists` - User playlists
 - `ss_theme` - Theme preference
+- `ss_playCounts` - Song play counts
+- `ss_ratings` - Song ratings (Day 5)
+- `ss_customTheme` - Custom theme colors (Day 5)
+- `ss_crossfade` - Crossfade enabled state (Day 5)
+- `ss_crossfadeDuration` - Crossfade duration (Day 5)
+- `ss_viewMode` - View mode preference (Day 5)
 
 ---
 
-*Last updated: January 11, 2026*
+*Last updated: January 12, 2026*
