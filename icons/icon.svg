@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0A1F1F"/>
+      <stop offset="50%" style="stop-color:#0D3535"/>
+      <stop offset="100%" style="stop-color:#0A1F1F"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8C77B"/>
+      <stop offset="50%" style="stop-color:#D4A84B"/>
+      <stop offset="100%" style="stop-color:#B8942F"/>
+    </linearGradient>
+    <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1A5F5F"/>
+      <stop offset="100%" style="stop-color:#0D3B3E"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="512" height="512" rx="100" fill="url(#bgGrad)"/>
+  
+  <!-- Decorative circle -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="url(#tealGrad)" stroke-width="3" opacity="0.5"/>
+  <circle cx="256" cy="256" r="160" fill="none" stroke="url(#tealGrad)" stroke-width="2" opacity="0.3"/>
+  
+  <!-- Music note symbol -->
+  <g transform="translate(256, 256)">
+    <!-- Main note body -->
+    <ellipse cx="-50" cy="60" rx="45" ry="35" fill="url(#goldGrad)"/>
+    <ellipse cx="50" cy="40" rx="45" ry="35" fill="url(#goldGrad)"/>
+    
+    <!-- Note stems -->
+    <rect x="-10" y="-100" width="12" height="165" fill="url(#goldGrad)"/>
+    <rect x="90" y="-120" width="12" height="165" fill="url(#goldGrad)"/>
+    
+    <!-- Connecting beam -->
+    <path d="M -10 -100 L 102 -120 L 102 -95 L -10 -75 Z" fill="url(#goldGrad)"/>
+    <path d="M -10 -70 L 102 -90 L 102 -65 L -10 -45 Z" fill="url(#goldGrad)"/>
+  </g>
+  
+  <!-- Sparkle effects -->
+  <circle cx="120" cy="120" r="6" fill="#D4A84B" opacity="0.8"/>
+  <circle cx="400" cy="100" r="4" fill="#D4A84B" opacity="0.6"/>
+  <circle cx="380" cy="400" r="5" fill="#D4A84B" opacity="0.7"/>
+  <circle cx="130" cy="380" r="4" fill="#D4A84B" opacity="0.5"/>
+</svg>

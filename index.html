@@ -7,8 +7,19 @@
   <meta name="description"
     content="SwarSmriti - A premium retro Indian music platform celebrating legendary artists and timeless melodies" />
   <meta name="theme-color" content="#0A1F1F" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SwarSmriti" />
   <title>SwarSmriti — Echoes of Indian Music Legends</title>
+
+  <!-- Favicon and Icons -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -323,12 +334,15 @@
           <div style="display:flex;gap:12px;align-items:center;margin-top:8px">
             <label style="width:100px" class="muted small">🎚️ Presets</label>
             <div style="display:flex;gap:8px;flex-wrap:wrap;flex:1">
-              <button class="chip eq-preset" data-preset="normal" onclick="applyEqualizerPreset('normal')">Normal</button>
+              <button class="chip eq-preset" data-preset="normal"
+                onclick="applyEqualizerPreset('normal')">Normal</button>
               <button class="chip eq-preset" data-preset="rock" onclick="applyEqualizerPreset('rock')">Rock</button>
               <button class="chip eq-preset" data-preset="pop" onclick="applyEqualizerPreset('pop')">Pop</button>
-              <button class="chip eq-preset" data-preset="classical" onclick="applyEqualizerPreset('classical')">Classical</button>
+              <button class="chip eq-preset" data-preset="classical"
+                onclick="applyEqualizerPreset('classical')">Classical</button>
               <button class="chip eq-preset" data-preset="jazz" onclick="applyEqualizerPreset('jazz')">Jazz</button>
-              <button class="chip eq-preset" data-preset="bass" onclick="applyEqualizerPreset('bass')">Bass Boost</button>
+              <button class="chip eq-preset" data-preset="bass" onclick="applyEqualizerPreset('bass')">Bass
+                Boost</button>
             </div>
           </div>
         </div>
@@ -401,7 +415,8 @@
             <button class="chip timer-option" data-minutes="0" onclick="cancelSleepTimer()">Cancel</button>
           </div>
         </div>
-        <div id="sleepTimerStatus" class="muted small" style="text-align:center;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px">
+        <div id="sleepTimerStatus" class="muted small"
+          style="text-align:center;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px">
           Timer not set
         </div>
       </div>
@@ -423,6 +438,67 @@
 
   <script src="data.js"></script>
   <script src="script.js"></script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((registration) => {
+            console.log('SW registered:', registration.scope);
+          })
+          .catch((error) => {
+            console.log('SW registration failed:', error);
+          });
+      });
+    }
+
+    // PWA Install Prompt
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+
+      // Show install button if not already added
+      if (!document.getElementById('pwaInstallBtn')) {
+        const installBtn = document.createElement('button');
+        installBtn.id = 'pwaInstallBtn';
+        installBtn.className = 'pill pwa-install-btn';
+        installBtn.innerHTML = '📲 Install App';
+        installBtn.title = 'Install SwarSmriti as an app';
+        installBtn.onclick = installPWA;
+
+        // Add to header controls
+        const controls = document.querySelector('.controls');
+        if (controls) {
+          controls.insertBefore(installBtn, controls.firstChild);
+        }
+      }
+    });
+
+    function installPWA() {
+      if (!deferredPrompt) return;
+
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('User accepted the install prompt');
+          const btn = document.getElementById('pwaInstallBtn');
+          if (btn) btn.remove();
+        }
+        deferredPrompt = null;
+      });
+    }
+
+    // Handle app installed
+    window.addEventListener('appinstalled', () => {
+      console.log('PWA was installed');
+      deferredPrompt = null;
+      const btn = document.getElementById('pwaInstallBtn');
+      if (btn) btn.remove();
+    });
+  </script>
 </body>
 
 </html>
