@@ -21,7 +21,14 @@ const state = {
   selectedGenre: null,
   selectedEra: null,
   sleepTimer: null,
-  equalizerPreset: 'normal'
+  equalizerPreset: 'normal',
+  // Day 5 features
+  songRatings: JSON.parse(localStorage.getItem('ss_ratings') || '{}'),
+  customTheme: JSON.parse(localStorage.getItem('ss_customTheme') || 'null'),
+  crossfadeEnabled: JSON.parse(localStorage.getItem('ss_crossfade') || 'false'),
+  crossfadeDuration: JSON.parse(localStorage.getItem('ss_crossfadeDuration') || '3'),
+  viewMode: localStorage.getItem('ss_viewMode') || 'list', // 'list', 'album', 'artist'
+  selectedArtist: null
 };
 
 // ---------- Helpers ----------
@@ -2993,3 +3000,852 @@ window.cancelSleepTimer = cancelSleepTimer;
 window.showLyricsModal = showLyricsModal;
 window.showStatistics = showStatistics;
 window.applyEqualizerPreset = applyEqualizerPreset;
+
+// ========== DAY 5 FEATURES ==========
+
+// ========== TOAST NOTIFICATIONS ==========
+function showToast(title, message, type = 'info', duration = 4000) {
+  let container = el('#toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+
+  const icons = {
+    success: '✅',
+    error: '❌',
+    info: 'ℹ️',
+    warning: '⚠️'
+  };
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `
+    <span class="toast-icon">${icons[type] || icons.info}</span>
+    <div class="toast-content">
+      <div class="toast-title">${title}</div>
+      <div class="toast-message">${message}</div>
+    </div>
+    <span class="toast-close" onclick="this.parentElement.remove()">✕</span>
+  `;
+
+  container.appendChild(toast);
+
+  // Auto remove after duration
+  setTimeout(() => {
+    toast.style.animation = 'slideInRight 0.3s ease reverse';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+
+  return toast;
+}
+
+// ========== EXPORT/IMPORT PLAYLISTS ==========
+function exportPlaylists() {
+  const exportData = {
+    version: '1.0',
+    exportDate: new Date().toISOString(),
+    playlists: state.playlists,
+    favorites: state.favorites,
+    ratings: state.songRatings,
+    theme: state.theme,
+    customTheme: state.customTheme
+  };
+
+  const dataStr = JSON.stringify(exportData, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `swarsmriti-backup-${new Date().toISOString().split('T')[0]}.json`;
+  link.click();
+
+  URL.revokeObjectURL(url);
+
+  showToast('Export Successful', 'Your playlists and data have been exported.', 'success');
+}
+
+function importPlaylists() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+
+        if (!data.version || !data.playlists) {
+          throw new Error('Invalid backup file format');
+        }
+
+        // Merge playlists
+        const existingNames = state.playlists.map(p => p.name);
+        data.playlists.forEach(playlist => {
+          if (!existingNames.includes(playlist.name)) {
+            state.playlists.push(playlist);
+          } else {
+            // Optional: merge songs from imported playlist
+            const existing = state.playlists.find(p => p.name === playlist.name);
+            playlist.songs.forEach(songId => {
+              if (!existing.songs.includes(songId)) {
+                existing.songs.push(songId);
+              }
+            });
+          }
+        });
+
+        // Merge favorites
+        if (data.favorites) {
+          data.favorites.forEach(songId => {
+            if (!state.favorites.includes(songId)) {
+              state.favorites.push(songId);
+            }
+          });
+        }
+
+        // Merge ratings
+        if (data.ratings) {
+          Object.assign(state.songRatings, data.ratings);
+        }
+
+        // Save to localStorage
+        localStorage.setItem('ss_playlists', JSON.stringify(state.playlists));
+        localStorage.setItem('ss_favs', JSON.stringify(state.favorites));
+        localStorage.setItem('ss_ratings', JSON.stringify(state.songRatings));
+
+        // Update UI
+        renderPlaylists();
+        updateFavCount();
+
+        showToast('Import Successful', `Imported ${data.playlists.length} playlists.`, 'success');
+      } catch (error) {
+        console.error('Import error:', error);
+        showToast('Import Failed', 'Could not read the backup file.', 'error');
+      }
+    };
+
+    reader.readAsText(file);
+  };
+
+  input.click();
+}
+
+function showExportImportModal() {
+  let modal = el('#exportImportModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'exportImportModal';
+    modal.className = 'modal';
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+    <div class="player card" style="max-width:450px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="font-size:18px">💾 Export / Import Data</strong>
+        <div class="close" id="closeExportImportModal">✕</div>
+      </div>
+      <div style="margin-top:20px">
+        <p class="muted small" style="margin-bottom:20px">
+          Export your playlists, favorites, and ratings to a JSON file for backup. 
+          Import to restore your data on another device.
+        </p>
+        
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <button class="export-import-btn primary" onclick="exportPlaylists()">
+            📤 Export All Data
+          </button>
+          <button class="export-import-btn" onclick="importPlaylists()">
+            📥 Import from File
+          </button>
+        </div>
+        
+        <div style="margin-top:20px;padding:16px;background:var(--bg-card);border-radius:12px">
+          <div class="small" style="font-weight:600;margin-bottom:8px">What's included:</div>
+          <ul class="muted small" style="margin:0;padding-left:20px">
+            <li>${state.playlists.length} playlists</li>
+            <li>${state.favorites.length} favorited songs</li>
+            <li>${Object.keys(state.songRatings).length} song ratings</li>
+            <li>Theme preferences</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  `;
+
+  modal.style.display = 'grid';
+
+  el('#closeExportImportModal').onclick = () => modal.style.display = 'none';
+  modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+}
+
+// ========== SONG RATINGS ==========
+function rateSong(songId, rating) {
+  state.songRatings[songId] = rating;
+  localStorage.setItem('ss_ratings', JSON.stringify(state.songRatings));
+
+  // Update UI if song details modal is open
+  const ratingContainer = el(`#rating-${songId}`);
+  if (ratingContainer) {
+    ratingContainer.innerHTML = renderStarRating(songId, rating);
+  }
+
+  showToast('Rating Saved', `You rated this song ${rating} star${rating > 1 ? 's' : ''}.`, 'success', 2000);
+}
+
+function renderStarRating(songId, currentRating = 0) {
+  const rating = currentRating || state.songRatings[songId] || 0;
+  let html = '<div class="star-rating">';
+
+  for (let i = 1; i <= 5; i++) {
+    const filled = i <= rating ? 'filled' : '';
+    html += `<span class="star ${filled}" onclick="rateSong('${songId}', ${i})" data-rating="${i}">★</span>`;
+  }
+
+  html += '</div>';
+  return html;
+}
+
+function renderStarRatingDisplay(songId) {
+  const rating = state.songRatings[songId] || 0;
+  let html = '<span class="star-rating-display">';
+
+  for (let i = 1; i <= 5; i++) {
+    const className = i <= rating ? 'star' : 'star empty';
+    html += `<span class="${className}">★</span>`;
+  }
+
+  html += '</span>';
+  return html;
+}
+
+// ========== CUSTOM THEMES ==========
+const PRESET_THEMES = {
+  default: {
+    name: 'Deep Teal (Default)',
+    primary: '#0A1F1F',
+    secondary: '#0D2B2B',
+    accent: '#D4A84B',
+    burgundy: '#8B2942'
+  },
+  midnight: {
+    name: 'Midnight Blue',
+    primary: '#0D1117',
+    secondary: '#161B22',
+    accent: '#58A6FF',
+    burgundy: '#F85149'
+  },
+  sunset: {
+    name: 'Sunset Warmth',
+    primary: '#1A0F0F',
+    secondary: '#2D1515',
+    accent: '#FF6B35',
+    burgundy: '#E63946'
+  },
+  forest: {
+    name: 'Forest Grove',
+    primary: '#0F1A14',
+    secondary: '#1A2E22',
+    accent: '#4ADE80',
+    burgundy: '#7C3AED'
+  },
+  lavender: {
+    name: 'Lavender Dreams',
+    primary: '#1A1A2E',
+    secondary: '#16213E',
+    accent: '#A78BFA',
+    burgundy: '#F472B6'
+  },
+  coffee: {
+    name: 'Coffee Shop',
+    primary: '#1C1410',
+    secondary: '#2C221A',
+    accent: '#C19A6B',
+    burgundy: '#8B4513'
+  }
+};
+
+function showThemeModal() {
+  let modal = el('#themeModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'themeModal';
+    modal.className = 'modal';
+    document.body.appendChild(modal);
+  }
+
+  const currentThemeName = state.customTheme?.name || 'default';
+
+  modal.innerHTML = `
+    <div class="player card" style="max-width:550px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="font-size:18px">🎨 Theme Settings</strong>
+        <div class="close" id="closeThemeModal">✕</div>
+      </div>
+      <div style="margin-top:20px">
+        <div style="display:flex;gap:12px;margin-bottom:20px">
+          <button class="chip ${state.theme === 'dark' ? 'active' : ''}" onclick="setThemeMode('dark')">
+            🌙 Dark Mode
+          </button>
+          <button class="chip ${state.theme === 'light' ? 'active' : ''}" onclick="setThemeMode('light')">
+            ☀️ Light Mode
+          </button>
+        </div>
+        
+        <div class="muted small" style="margin-bottom:12px">Color Themes</div>
+        <div class="theme-picker">
+          ${Object.entries(PRESET_THEMES).map(([key, theme]) => `
+            <div class="theme-option ${currentThemeName === key ? 'active' : ''}" onclick="applyPresetTheme('${key}')">
+              <div class="theme-preview">
+                <div class="theme-preview-bar" style="background:${theme.primary}"></div>
+                <div class="theme-preview-bar" style="background:${theme.accent}"></div>
+                <div class="theme-preview-bar" style="background:${theme.burgundy}"></div>
+              </div>
+              <div class="theme-name">${theme.name}</div>
+            </div>
+          `).join('')}
+        </div>
+        
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--glass-border)">
+          <div class="muted small" style="margin-bottom:12px">Custom Colors</div>
+          <div class="color-input-group">
+            <label>Primary</label>
+            <input type="color" id="customPrimary" value="${state.customTheme?.primary || '#0A1F1F'}" onchange="updateCustomTheme()">
+          </div>
+          <div class="color-input-group">
+            <label>Accent</label>
+            <input type="color" id="customAccent" value="${state.customTheme?.accent || '#D4A84B'}" onchange="updateCustomTheme()">
+          </div>
+          <div class="color-input-group">
+            <label>Highlight</label>
+            <input type="color" id="customBurgundy" value="${state.customTheme?.burgundy || '#8B2942'}" onchange="updateCustomTheme()">
+          </div>
+          <button class="chip" style="margin-top:12px" onclick="resetTheme()">Reset to Default</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  modal.style.display = 'grid';
+
+  el('#closeThemeModal').onclick = () => modal.style.display = 'none';
+  modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+}
+
+function setThemeMode(mode) {
+  state.theme = mode;
+  localStorage.setItem('ss_theme', mode);
+  document.documentElement.setAttribute('data-theme', mode);
+
+  // Update theme toggle button
+  const themeBtn = el('#themeToggle');
+  if (themeBtn) {
+    themeBtn.innerHTML = mode === 'dark' ? '<span>🌙</span>' : '<span>☀️</span>';
+  }
+
+  // Refresh modal if open
+  if (el('#themeModal')?.style.display === 'grid') {
+    showThemeModal();
+  }
+}
+
+function applyPresetTheme(themeKey) {
+  const theme = PRESET_THEMES[themeKey];
+  if (!theme) return;
+
+  state.customTheme = { name: themeKey, ...theme };
+  localStorage.setItem('ss_customTheme', JSON.stringify(state.customTheme));
+
+  applyCustomColors(theme);
+  showThemeModal(); // Refresh modal
+
+  showToast('Theme Applied', `Now using ${theme.name} theme.`, 'success', 2000);
+}
+
+function updateCustomTheme() {
+  const primary = el('#customPrimary')?.value;
+  const accent = el('#customAccent')?.value;
+  const burgundy = el('#customBurgundy')?.value;
+
+  if (primary && accent && burgundy) {
+    const theme = { name: 'custom', primary, accent, burgundy };
+    state.customTheme = theme;
+    localStorage.setItem('ss_customTheme', JSON.stringify(theme));
+    applyCustomColors(theme);
+  }
+}
+
+function applyCustomColors(theme) {
+  const root = document.documentElement;
+
+  if (theme.primary) {
+    root.style.setProperty('--bg-primary', theme.primary);
+    // Calculate secondary color (slightly lighter)
+    root.style.setProperty('--bg-secondary', lightenColor(theme.primary, 10));
+  }
+
+  if (theme.accent) {
+    root.style.setProperty('--accent-gold', theme.accent);
+    root.style.setProperty('--accent-gold-light', lightenColor(theme.accent, 15));
+  }
+
+  if (theme.burgundy) {
+    root.style.setProperty('--accent-burgundy', theme.burgundy);
+  }
+}
+
+function resetTheme() {
+  state.customTheme = null;
+  localStorage.removeItem('ss_customTheme');
+
+  // Reset CSS variables
+  const root = document.documentElement;
+  root.style.removeProperty('--bg-primary');
+  root.style.removeProperty('--bg-secondary');
+  root.style.removeProperty('--accent-gold');
+  root.style.removeProperty('--accent-gold-light');
+  root.style.removeProperty('--accent-burgundy');
+
+  showThemeModal(); // Refresh modal
+  showToast('Theme Reset', 'Restored default theme.', 'info', 2000);
+}
+
+function lightenColor(color, percent) {
+  const num = parseInt(color.replace('#', ''), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.min(255, (num >> 16) + amt);
+  const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
+  const B = Math.min(255, (num & 0x0000FF) + amt);
+  return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+}
+
+// ========== CROSSFADE BETWEEN SONGS ==========
+let crossfadeAudio = null;
+let crossfadeTimeout = null;
+
+function toggleCrossfade() {
+  state.crossfadeEnabled = !state.crossfadeEnabled;
+  localStorage.setItem('ss_crossfade', JSON.stringify(state.crossfadeEnabled));
+
+  showToast(
+    state.crossfadeEnabled ? 'Crossfade Enabled' : 'Crossfade Disabled',
+    state.crossfadeEnabled
+      ? `Songs will fade over ${state.crossfadeDuration} seconds.`
+      : 'Songs will play without fading.',
+    'info',
+    2000
+  );
+
+  updateCrossfadeUI();
+}
+
+function setCrossfadeDuration(seconds) {
+  state.crossfadeDuration = seconds;
+  localStorage.setItem('ss_crossfadeDuration', JSON.stringify(seconds));
+}
+
+function updateCrossfadeUI() {
+  const btn = el('#crossfadeBtn');
+  if (btn) {
+    btn.classList.toggle('active', state.crossfadeEnabled);
+    btn.innerHTML = state.crossfadeEnabled
+      ? `🔀 Crossfade: ${state.crossfadeDuration}s`
+      : '🔀 Crossfade: Off';
+  }
+}
+
+function initCrossfadeMonitor() {
+  if (!state.crossfadeEnabled) return;
+
+  // Monitor current playback and start crossfade near end
+  const checkInterval = setInterval(() => {
+    if (!state.crossfadeEnabled) {
+      clearInterval(checkInterval);
+      return;
+    }
+
+    const duration = getCurrentDuration();
+    const currentTime = getCurrentTime();
+
+    if (duration > 0 && currentTime > 0) {
+      const remaining = duration - currentTime;
+      const fadeStart = state.crossfadeDuration;
+
+      if (remaining <= fadeStart && remaining > 0) {
+        // Start crossfade
+        startCrossfade();
+        clearInterval(checkInterval);
+      }
+    }
+  }, 1000);
+}
+
+function startCrossfade() {
+  // Show crossfade indicator
+  showCrossfadeIndicator();
+
+  // Get next song
+  const nextIndex = getNextIndex();
+  if (nextIndex === state.currentIndex) return;
+
+  // Start fading out current
+  fadeOutCurrent();
+}
+
+function showCrossfadeIndicator() {
+  let indicator = el('#crossfadeIndicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.id = 'crossfadeIndicator';
+    indicator.className = 'crossfade-indicator';
+    indicator.innerHTML = `
+      <div class="crossfade-bars">
+        <div class="crossfade-bar"></div>
+        <div class="crossfade-bar"></div>
+        <div class="crossfade-bar"></div>
+      </div>
+      <span>Crossfading...</span>
+    `;
+    document.body.appendChild(indicator);
+  }
+
+  indicator.classList.add('visible');
+
+  setTimeout(() => {
+    indicator.classList.remove('visible');
+  }, state.crossfadeDuration * 1000);
+}
+
+function fadeOutCurrent() {
+  // Gradual volume reduction for YouTube player
+  if (ytPlayer && typeof ytPlayer.setVolume === 'function') {
+    const startVolume = currentVolume * 100;
+    const steps = 20;
+    const stepDuration = (state.crossfadeDuration * 1000) / steps;
+    let step = 0;
+
+    const fadeInterval = setInterval(() => {
+      step++;
+      const newVolume = startVolume * (1 - step / steps);
+      try {
+        ytPlayer.setVolume(Math.max(0, newVolume));
+      } catch (e) { }
+
+      if (step >= steps) {
+        clearInterval(fadeInterval);
+      }
+    }, stepDuration);
+  }
+}
+
+// Helper functions for crossfade
+function getCurrentDuration() {
+  if (ytPlayer && typeof ytPlayer.getDuration === 'function') {
+    try {
+      return ytPlayer.getDuration();
+    } catch (e) { }
+  }
+  return 0;
+}
+
+function getCurrentTime() {
+  if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function') {
+    try {
+      return ytPlayer.getCurrentTime();
+    } catch (e) { }
+  }
+  return 0;
+}
+
+// ========== ENHANCED ARTIST VIEW ==========
+function showArtistPage(artistId) {
+  const artist = DATA.artists.find(a => a.id === artistId);
+  if (!artist) return;
+
+  state.selectedArtist = artistId;
+  state.view = 'artist';
+
+  // Get artist's songs
+  const artistSongs = DATA.songs.filter(s => s.artist === artistId);
+
+  // Calculate stats
+  const totalPlays = artistSongs.reduce((sum, s) => sum + (state.playCounts[s.id] || 0), 0);
+  const avgRating = artistSongs.reduce((sum, s) => sum + (state.songRatings[s.id] || 0), 0) /
+    (artistSongs.filter(s => state.songRatings[s.id]).length || 1);
+
+  // Group by album
+  const albums = {};
+  artistSongs.forEach(song => {
+    const albumName = song.album || 'Singles';
+    if (!albums[albumName]) {
+      albums[albumName] = { songs: [], year: song.year };
+    }
+    albums[albumName].songs.push(song);
+  });
+
+  // Update main content
+  const listTitle = el('#listTitle');
+  if (listTitle) {
+    listTitle.innerHTML = `🎤 ${artist.name}`;
+  }
+
+  const songsList = el('#songsList');
+  if (songsList) {
+    songsList.innerHTML = `
+      <div class="artist-hero">
+        <div class="artist-hero-image">${artist.image || '🎤'}</div>
+        <div class="artist-hero-info">
+          <h2>${artist.name}</h2>
+          <div class="muted">${artist.era} • ${artist.region}</div>
+          <p class="small" style="margin-top:8px">${artist.bio}</p>
+          <div class="artist-genres">
+            ${artist.genres.map(g => `<span class="badge">${g}</span>`).join('')}
+          </div>
+          <div class="artist-stats">
+            <div class="artist-stat">
+              <div class="artist-stat-value">${artistSongs.length}</div>
+              <div class="artist-stat-label">Songs</div>
+            </div>
+            <div class="artist-stat">
+              <div class="artist-stat-value">${totalPlays}</div>
+              <div class="artist-stat-label">Plays</div>
+            </div>
+            <div class="artist-stat">
+              <div class="artist-stat-value">${avgRating > 0 ? avgRating.toFixed(1) : '-'}</div>
+              <div class="artist-stat-label">Avg Rating</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="display:flex;gap:10px;margin-bottom:20px">
+        <button class="chip" onclick="playAllArtistSongs('${artistId}')">▶️ Play All</button>
+        <button class="chip" onclick="shuffleArtistSongs('${artistId}')">🔀 Shuffle</button>
+        <button class="chip" onclick="goBackToHome()">← Back</button>
+      </div>
+      
+      ${Object.entries(albums).sort((a, b) => (b[1].year || 0) - (a[1].year || 0)).map(([albumName, album]) => `
+        <div class="album-group">
+          <div class="album-header">
+            <div class="album-cover">💿</div>
+            <div class="album-info">
+              <h3>${albumName}</h3>
+              <div class="album-meta">${album.year || 'Unknown'} • ${album.songs.length} songs</div>
+            </div>
+          </div>
+          <div class="album-songs" id="album-${albumName.replace(/\s/g, '-')}"></div>
+        </div>
+      `).join('')}
+    `;
+
+    // Render songs in each album
+    Object.entries(albums).forEach(([albumName, album]) => {
+      const container = el(`#album-${albumName.replace(/\s/g, '-')}`);
+      if (container) {
+        renderSongsInContainer(album.songs, container);
+      }
+    });
+  }
+}
+
+function playAllArtistSongs(artistId) {
+  const artistSongs = DATA.songs.filter(s => s.artist === artistId);
+  if (artistSongs.length === 0) return;
+
+  initQueueFromSongs(artistSongs.map(s => s.id), 0);
+  openSong(artistSongs[0].id);
+}
+
+function shuffleArtistSongs(artistId) {
+  const artistSongs = DATA.songs.filter(s => s.artist === artistId);
+  if (artistSongs.length === 0) return;
+
+  const shuffled = [...artistSongs].sort(() => Math.random() - 0.5);
+  initQueueFromSongs(shuffled.map(s => s.id), 0);
+  openSong(shuffled[0].id);
+}
+
+function goBackToHome() {
+  state.view = 'home';
+  state.selectedArtist = null;
+
+  const listTitle = el('#listTitle');
+  if (listTitle) {
+    listTitle.innerHTML = '🎶 Latest Additions';
+  }
+
+  renderSongs(DATA.songs);
+}
+
+// ========== ALBUM GROUPING VIEW ==========
+function toggleAlbumView() {
+  if (state.viewMode === 'album') {
+    state.viewMode = 'list';
+    renderSongs(DATA.songs);
+  } else {
+    state.viewMode = 'album';
+    renderAlbumGroupedView();
+  }
+
+  localStorage.setItem('ss_viewMode', state.viewMode);
+}
+
+function renderAlbumGroupedView() {
+  // Group all songs by album
+  const albums = {};
+  DATA.songs.forEach(song => {
+    const albumName = song.album || 'Singles';
+    const artist = DATA.artists.find(a => a.id === song.artist);
+    const key = `${albumName}-${artist?.name || 'Unknown'}`;
+
+    if (!albums[key]) {
+      albums[key] = {
+        name: albumName,
+        artist: artist?.name || 'Unknown',
+        artistImage: artist?.image || '🎵',
+        year: song.year,
+        songs: []
+      };
+    }
+    albums[key].songs.push(song);
+  });
+
+  const songsList = el('#songsList');
+  if (songsList) {
+    const listTitle = el('#listTitle');
+    if (listTitle) {
+      listTitle.innerHTML = '💿 Albums';
+    }
+
+    songsList.innerHTML = Object.values(albums)
+      .sort((a, b) => (b.year || 0) - (a.year || 0))
+      .map(album => `
+        <div class="album-group">
+          <div class="album-header">
+            <div class="album-cover">${album.artistImage}</div>
+            <div class="album-info">
+              <h3>${album.name}</h3>
+              <div class="album-meta">${album.artist} • ${album.year || 'Unknown'} • ${album.songs.length} songs</div>
+            </div>
+            <button class="chip" onclick="playAlbum('${album.name}', '${album.artist}')">▶️ Play</button>
+          </div>
+          <div class="album-songs" id="album-view-${album.name.replace(/\s/g, '-')}-${album.artist.replace(/\s/g, '-')}"></div>
+        </div>
+      `).join('');
+
+    // Render songs in each album
+    Object.values(albums).forEach(album => {
+      const container = el(`#album-view-${album.name.replace(/\s/g, '-')}-${album.artist.replace(/\s/g, '-')}`);
+      if (container) {
+        renderSongsInContainer(album.songs, container);
+      }
+    });
+  }
+}
+
+function playAlbum(albumName, artistName) {
+  const albumSongs = DATA.songs.filter(s => {
+    const artist = DATA.artists.find(a => a.id === s.artist);
+    return (s.album || 'Singles') === albumName && (artist?.name || 'Unknown') === artistName;
+  });
+
+  if (albumSongs.length === 0) return;
+
+  initQueueFromSongs(albumSongs.map(s => s.id), 0);
+  openSong(albumSongs[0].id);
+}
+
+// ========== INITIALIZE DAY 5 FEATURES ==========
+function initDay5Features() {
+  // Apply saved custom theme
+  if (state.customTheme && state.customTheme.name !== 'default') {
+    applyCustomColors(state.customTheme);
+  }
+
+  // Add export/import button to playlists section
+  const playlistsHeader = el('#newPlaylist')?.parentElement;
+  if (playlistsHeader && !el('#exportImportBtn')) {
+    const exportBtn = document.createElement('button');
+    exportBtn.id = 'exportImportBtn';
+    exportBtn.className = 'badge';
+    exportBtn.style.cursor = 'pointer';
+    exportBtn.innerHTML = '💾';
+    exportBtn.title = 'Export/Import Data';
+    exportBtn.onclick = showExportImportModal;
+    playlistsHeader.appendChild(exportBtn);
+  }
+
+  // Add theme button click handler
+  const themeToggle = el('#themeToggle');
+  if (themeToggle) {
+    themeToggle.ondblclick = showThemeModal; // Double-click for theme modal
+  }
+
+  // Add crossfade toggle to playback controls
+  const playbackControls = el('#playbackControls');
+  if (playbackControls && !el('#crossfadeBtn')) {
+    const crossfadeBtn = document.createElement('button');
+    crossfadeBtn.id = 'crossfadeBtn';
+    crossfadeBtn.className = 'pill';
+    crossfadeBtn.innerHTML = state.crossfadeEnabled
+      ? `🔀 Crossfade: ${state.crossfadeDuration}s`
+      : '🔀 Crossfade: Off';
+    crossfadeBtn.onclick = toggleCrossfade;
+    if (state.crossfadeEnabled) crossfadeBtn.classList.add('active');
+    playbackControls.appendChild(crossfadeBtn);
+  }
+
+  // Add view toggle button
+  const listTitleEl = el('#listTitle')?.parentElement;
+  if (listTitleEl && !el('#viewToggleBtn')) {
+    const viewBtn = document.createElement('button');
+    viewBtn.id = 'viewToggleBtn';
+    viewBtn.className = 'badge';
+    viewBtn.style.cursor = 'pointer';
+    viewBtn.innerHTML = '💿 Albums';
+    viewBtn.title = 'Toggle Album View';
+    viewBtn.onclick = toggleAlbumView;
+    listTitleEl.appendChild(viewBtn);
+  }
+
+  // Initialize crossfade monitoring when song plays
+  if (state.crossfadeEnabled) {
+    initCrossfadeMonitor();
+  }
+
+  console.log('Day 5 features initialized');
+}
+
+// Update DOMContentLoaded to initialize Day 5 features
+document.addEventListener('DOMContentLoaded', () => {
+  // Wait for main initialization to complete
+  setTimeout(initDay5Features, 300);
+});
+
+// Make Day 5 functions globally available
+window.showToast = showToast;
+window.exportPlaylists = exportPlaylists;
+window.importPlaylists = importPlaylists;
+window.showExportImportModal = showExportImportModal;
+window.rateSong = rateSong;
+window.renderStarRating = renderStarRating;
+window.showThemeModal = showThemeModal;
+window.setThemeMode = setThemeMode;
+window.applyPresetTheme = applyPresetTheme;
+window.updateCustomTheme = updateCustomTheme;
+window.resetTheme = resetTheme;
+window.toggleCrossfade = toggleCrossfade;
+window.showArtistPage = showArtistPage;
+window.playAllArtistSongs = playAllArtistSongs;
+window.shuffleArtistSongs = shuffleArtistSongs;
+window.goBackToHome = goBackToHome;
+window.toggleAlbumView = toggleAlbumView;
+window.playAlbum = playAlbum;

@@ -1354,3 +1354,451 @@ footer {
     transform: translateX(0) translateY(0);
   }
 }
+
+/* ========== DAY 5: PWA INSTALL BUTTON ========== */
+.pwa-install-btn {
+  background: linear-gradient(135deg, #00C853, #00E676) !important;
+  color: #0A1F1F !important;
+  font-weight: 600;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.pwa-install-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(0, 200, 83, 0.4);
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(0, 200, 83, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 20px rgba(0, 200, 83, 0.5);
+  }
+}
+
+/* ========== DAY 5: STAR RATINGS ========== */
+.star-rating {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.star-rating .star {
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-muted);
+}
+
+.star-rating .star:hover,
+.star-rating .star.active {
+  color: #FFD700;
+  transform: scale(1.2);
+}
+
+.star-rating .star.filled {
+  color: #FFD700;
+}
+
+.star-rating-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.star-rating-display .star {
+  color: #FFD700;
+}
+
+.star-rating-display .star.empty {
+  color: var(--text-muted);
+}
+
+/* ========== DAY 5: EXPORT/IMPORT BUTTONS ========== */
+.export-import-btn {
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.export-import-btn:hover {
+  border-color: var(--accent-gold);
+  background: var(--bg-card-hover);
+  transform: translateY(-2px);
+}
+
+.export-import-btn.primary {
+  background: var(--gradient-accent);
+  border-color: transparent;
+  color: white;
+}
+
+.export-import-btn.primary:hover {
+  box-shadow: var(--glow-gold);
+}
+
+/* ========== DAY 5: CUSTOM THEME PICKER ========== */
+.theme-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.theme-option {
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--bg-card);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.theme-option:hover {
+  transform: translateY(-2px);
+  border-color: var(--glass-border);
+}
+
+.theme-option.active {
+  border-color: var(--accent-gold);
+  box-shadow: var(--glow-gold);
+}
+
+.theme-preview {
+  width: 60px;
+  height: 40px;
+  border-radius: 8px;
+  margin: 0 auto 8px;
+  display: flex;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.theme-preview-bar {
+  flex: 1;
+  height: 100%;
+}
+
+.theme-name {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Color picker input styling */
+.color-input-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.color-input-group label {
+  min-width: 100px;
+  font-size: 14px;
+}
+
+.color-input-group input[type="color"] {
+  width: 50px;
+  height: 35px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: transparent;
+}
+
+.color-input-group input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.color-input-group input[type="color"]::-webkit-color-swatch {
+  border-radius: 6px;
+  border: 2px solid var(--glass-border);
+}
+
+/* ========== DAY 5: CROSSFADE INDICATOR ========== */
+.crossfade-indicator {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-secondary);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--glass-border);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.crossfade-indicator.visible {
+  opacity: 1;
+}
+
+.crossfade-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 16px;
+}
+
+.crossfade-bar {
+  width: 3px;
+  background: var(--accent-gold);
+  border-radius: 2px;
+  animation: crossfade-pulse 0.5s ease-in-out infinite alternate;
+}
+
+.crossfade-bar:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.crossfade-bar:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+@keyframes crossfade-pulse {
+  from {
+    height: 4px;
+  }
+
+  to {
+    height: 16px;
+  }
+}
+
+/* ========== DAY 5: ARTIST PAGE ENHANCEMENTS ========== */
+.artist-hero {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 32px;
+  background: linear-gradient(135deg, rgba(26, 95, 95, 0.4) 0%, rgba(139, 41, 66, 0.2) 100%);
+  border-radius: 20px;
+  margin-bottom: 24px;
+}
+
+.artist-hero-image {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: var(--gradient-accent);
+  display: grid;
+  place-items: center;
+  font-size: 64px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.artist-hero-info h2 {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.artist-genres {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.artist-stats {
+  display: flex;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.artist-stat {
+  text-align: center;
+}
+
+.artist-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent-gold);
+}
+
+.artist-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ========== DAY 5: ALBUM GROUPING ========== */
+.album-group {
+  margin-bottom: 32px;
+}
+
+.album-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.album-cover {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  background: var(--gradient-card);
+  display: grid;
+  place-items: center;
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.album-info h3 {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.album-meta {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.album-songs {
+  padding-left: 96px;
+}
+
+/* ========== DAY 5: TOAST NOTIFICATIONS ========== */
+.toast-container {
+  position: fixed;
+  bottom: 100px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 1002;
+}
+
+.toast {
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow-lg);
+  animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  max-width: 350px;
+}
+
+.toast.success {
+  border-left: 4px solid #4CAF50;
+}
+
+.toast.error {
+  border-left: 4px solid #F44336;
+}
+
+.toast.info {
+  border-left: 4px solid var(--accent-gold);
+}
+
+.toast-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.toast-content {
+  flex: 1;
+}
+
+.toast-title {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.toast-message {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.toast-close {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  font-size: 18px;
+}
+
+.toast-close:hover {
+  opacity: 1;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ========== DAY 5: RESPONSIVE ADJUSTMENTS ========== */
+@media (max-width: 768px) {
+  .artist-hero {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .artist-hero-image {
+    width: 100px;
+    height: 100px;
+    font-size: 48px;
+  }
+
+  .artist-hero-info h2 {
+    font-size: 24px;
+  }
+
+  .artist-genres,
+  .artist-stats {
+    justify-content: center;
+  }
+
+  .album-songs {
+    padding-left: 0;
+  }
+
+  .album-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .toast-container {
+    left: 16px;
+    right: 16px;
+    bottom: 90px;
+  }
+
+  .toast {
+    max-width: none;
+  }
+
+  .pwa-install-btn {
+    font-size: 12px !important;
+    padding: 8px 12px !important;
+  }
+}
